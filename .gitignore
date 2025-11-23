@@ -1,0 +1,47 @@
+# Fichiers compilés
+*.exe
+*.o
+*.obj
+*.dll
+*.so
+*.dylib
+
+# Dossier de build
+build/
+bin/
+
+# Fichiers de configuration générés
+config.txt
+
+# Fichiers temporaires Windows
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Fichiers IDE / Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Fichiers de log
+*.log
+
+# Cache Python (si create_icon.py est utilisé)
+__pycache__/
+*.pyc
+*.pyo
+
+# Fichiers système MacOS
+.DS_Store
+
+# Fichiers temporaires de compilation
+*.i
+*.s
+*.bc
+*.d
+
+# Dossiers de dépendances (si utilisés)
+vendor/
+node_modules/
