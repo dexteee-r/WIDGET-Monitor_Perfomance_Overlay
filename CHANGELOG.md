@@ -41,6 +41,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 📖 Guide pédagogique complet (714 lignes)
 
 ---
+### A Ajouté : 
+affiché le run time de la machine (depuis combien de temps la machine est allumé)
+
+
 
 ## Types de modifications
 

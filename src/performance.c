@@ -1,22 +1,22 @@
 /*
  * performance.c
- * Implémentation des fonctions de monitoring système
+ * Implementation des fonctions de monitoring systeme
  */
 
 #include <windows.h>
 #include <stdio.h>
 #include <psapi.h>
+#include <string.h>
 #include "../include/performance.h"
 
 // Variables globales pour le monitoring CPU
 static ULARGE_INTEGER lastIdleTime, lastKernelTime, lastUserTime;
 static int numProcessors;
-static BOOL firstRun = TRUE;
 
 /*
  * InitPerformanceMonitoring
- * Initialise le système de monitoring des performances
- * Appelée une fois au démarrage du programme
+ * Initialise le systeme de monitoring des performances
+ * Appelee une fois au demarrage du programme
  */
 void InitPerformanceMonitoring() {
     SYSTEM_INFO sysInfo;
@@ -26,7 +26,7 @@ void InitPerformanceMonitoring() {
     GetSystemInfo(&sysInfo);
     numProcessors = sysInfo.dwNumberOfProcessors;
 
-    // Initialiser les temps système
+    // Initialiser les temps systeme
     GetSystemTimes(&idleTime, &kernelTime, &userTime);
     memcpy(&lastIdleTime, &idleTime, sizeof(FILETIME));
     memcpy(&lastKernelTime, &kernelTime, sizeof(FILETIME));
@@ -35,7 +35,7 @@ void InitPerformanceMonitoring() {
 
 /*
  * GetCPUUsage
- * Calcule l'utilisation CPU du système en pourcentage
+ * Calcule l'utilisation CPU du systeme en pourcentage
  * Retourne un nombre entre 0.0 et 100.0
  */
 static float GetCPUUsage() {
@@ -44,7 +44,7 @@ static float GetCPUUsage() {
     ULONGLONG idleDiff, kernelDiff, userDiff, totalDiff;
     float percent;
 
-    // Obtenir les temps système actuels
+    // Obtenir les temps systeme actuels
     if (!GetSystemTimes(&idleTime, &kernelTime, &userTime)) {
         return 0.0f;
     }
@@ -53,7 +53,7 @@ static float GetCPUUsage() {
     memcpy(&kernel, &kernelTime, sizeof(FILETIME));
     memcpy(&user, &userTime, sizeof(FILETIME));
 
-    // Calculer les différences depuis le dernier appel
+    // Calculer les differences depuis le dernier appel
     idleDiff = idle.QuadPart - lastIdleTime.QuadPart;
     kernelDiff = kernel.QuadPart - lastKernelTime.QuadPart;
     userDiff = user.QuadPart - lastUserTime.QuadPart;
@@ -61,13 +61,12 @@ static float GetCPUUsage() {
     // Le temps kernel inclut le temps idle, il faut le soustraire
     totalDiff = kernelDiff + userDiff;
 
-    // Éviter la division par zéro
+    // Eviter la division par zero
     if (totalDiff == 0) {
         return 0.0f;
     }
 
     // Calculer le pourcentage d'utilisation
-    // CPU Usage = (Total - Idle) / Total * 100
     percent = (float)(((totalDiff - idleDiff) * 100.0) / totalDiff);
 
     // Sauvegarder pour le prochain appel
@@ -84,22 +83,22 @@ static float GetCPUUsage() {
 
 /*
  * GetMemoryUsage
- * Obtient l'utilisation de la mémoire RAM en pourcentage
+ * Obtient l'utilisation de la memoire RAM en pourcentage
  */
 static float GetMemoryUsage() {
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
-    // Obtenir les informations mémoire
+    // Obtenir les informations memoire
     GlobalMemoryStatusEx(&memInfo);
 
-    // Retourner le pourcentage utilisé
+    // Retourner le pourcentage utilise
     return (float)memInfo.dwMemoryLoad;
 }
 
 /*
  * GetMemoryDetails
- * Obtient les détails de la mémoire RAM (utilisée et totale en GB)
+ * Obtient les details de la memoire RAM (utilisee et totale en GB)
  */
 static void GetMemoryDetails(float* used_gb, float* total_gb) {
     MEMORYSTATUSEX memInfo;
@@ -117,21 +116,21 @@ static void GetMemoryDetails(float* used_gb, float* total_gb) {
 
 /*
  * GetSystemUptime
- * Obtient le temps écoulé depuis le démarrage du système en secondes
+ * Obtient le temps ecoule depuis le demarrage du systeme en secondes
  */
 static DWORD GetSystemUptime() {
-    // GetTickCount64 retourne le temps en millisecondes depuis le démarrage
+    // GetTickCount64 retourne le temps en millisecondes depuis le demarrage
     return (DWORD)(GetTickCount64() / 1000);
 }
 
 /*
  * GetProcessCount
- * Obtient le nombre de processus actifs sur le système
+ * Obtient le nombre de processus actifs sur le systeme
  */
 static DWORD GetProcessCount() {
     DWORD processes[1024], bytesReturned, processCount;
 
-    // Énumérer tous les processus
+    // Enumerer tous les processus
     if (EnumProcesses(processes, sizeof(processes), &bytesReturned)) {
         // Calculer le nombre de processus
         processCount = bytesReturned / sizeof(DWORD);
@@ -143,14 +142,14 @@ static DWORD GetProcessCount() {
 
 /*
  * GetCPUFrequency
- * Obtient la fréquence du CPU en GHz
+ * Obtient la frequence du CPU en GHz
  */
 static float GetCPUFrequency() {
     HKEY hKey;
     DWORD mhz = 0;
     DWORD size = sizeof(DWORD);
 
-    // Lire la fréquence depuis le registre
+    // Lire la frequence depuis le registre
     if (RegOpenKeyEx(HKEY_LOCAL_MACHINE,
                      "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
                      0,
@@ -165,37 +164,58 @@ static float GetCPUFrequency() {
 }
 
 /*
- * GetDiskUsage
- * Obtient l'utilisation du disque C: en pourcentage
+ * GetDiskUsages
+ * Detecte les disques fixes et calcule leur taux d'utilisation
+ * Remplit les tableaux de noms et pourcentages, retourne le nombre de disques
  */
-static float GetDiskUsage(char* diskName) {
-    ULARGE_INTEGER freeBytesAvailable, totalBytes, totalFreeBytes;
+static int GetDiskUsages(char diskNames[][8], float diskUsages[], int maxDisks) {
+    DWORD drives = GetLogicalDrives();
+    int count = 0;
 
-    // Copier le nom du disque
-    strcpy(diskName, "C:\\");
+    for (int i = 0; i < 26 && count < maxDisks; i++) {
+        if (drives & (1 << i)) {
+            char rootPath[4] = { (char)('A' + i), ':', '\\', '\0' };
+            UINT type = GetDriveType(rootPath);
 
-    // Obtenir les informations du disque
-    if (GetDiskFreeSpaceEx("C:\\", &freeBytesAvailable, &totalBytes, &totalFreeBytes)) {
-        // Calculer le pourcentage utilisé
-        ULONGLONG usedBytes = totalBytes.QuadPart - totalFreeBytes.QuadPart;
-        return (float)((double)usedBytes / (double)totalBytes.QuadPart * 100.0);
+            if (type == DRIVE_FIXED || type == DRIVE_RAMDISK) {
+                ULARGE_INTEGER freeBytesAvailable, totalBytes, totalFreeBytes;
+                if (GetDiskFreeSpaceEx(rootPath, &freeBytesAvailable, &totalBytes, &totalFreeBytes) &&
+                    totalBytes.QuadPart > 0) {
+                    ULONGLONG usedBytes = totalBytes.QuadPart - totalFreeBytes.QuadPart;
+                    float usage = (float)((double)usedBytes / (double)totalBytes.QuadPart * 100.0);
+
+                    diskNames[count][0] = rootPath[0];
+                    diskNames[count][1] = ':';
+                    diskNames[count][2] = '\0';
+                    diskUsages[count] = usage;
+                    count++;
+                }
+            }
+        }
     }
 
-    return 0.0f;
+    return count;
 }
 
 /*
  * GetPerformanceData
- * Récupère toutes les données de performance
+ * Recupere toutes les donnees de performance
  * Cette fonction remplit la structure PerformanceData
  */
 void GetPerformanceData(PerformanceData* data) {
-    // Récupérer toutes les métriques de base
+    // Recuperer toutes les metriques de base
     data->cpu_usage = GetCPUUsage();
     data->memory_usage = GetMemoryUsage();
-    data->disk_usage = GetDiskUsage(data->disk_name);
+    data->disk_count = GetDiskUsages(data->disk_names, data->disk_usages, MAX_DISKS);
+    if (data->disk_count > 0) {
+        data->disk_usage = data->disk_usages[0];
+        strcpy(data->disk_name, data->disk_names[0]);
+    } else {
+        data->disk_usage = 0.0f;
+        strcpy(data->disk_name, "N/A");
+    }
 
-    // Récupérer les nouvelles métriques
+    // Recuperer les autres metriques
     GetMemoryDetails(&data->memory_used_gb, &data->memory_total_gb);
     data->uptime_seconds = GetSystemUptime();
     data->process_count = GetProcessCount();
@@ -204,10 +224,9 @@ void GetPerformanceData(PerformanceData* data) {
 
 /*
  * CleanupPerformanceMonitoring
- * Nettoie les ressources utilisées par le monitoring
- * Appelée à la fermeture du programme
+ * Nettoie les ressources utilisees par le monitoring
+ * Appelee a la fermeture du programme
  */
 void CleanupPerformanceMonitoring() {
-    // Rien à nettoyer pour l'instant
-    // Cette fonction est prête pour des ajouts futurs
+    // Rien a nettoyer pour l'instant
 }

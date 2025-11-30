@@ -45,3 +45,4 @@ __pycache__/
 # Dossiers de dépendances (si utilisés)
 vendor/
 node_modules/
+inspi/ 

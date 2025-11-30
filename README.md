@@ -1,4 +1,4 @@
-# 📊 Performance Overlay v2.0
+# 📊 WIDGET-Monitor_Perfomance_Overlay v2.0
 
 <div align="center">
 
@@ -18,7 +18,7 @@
 
 ## 📸 Aperçu
 
-> **Note** : Ajoutez des captures d'écran ici avec : `![Screenshot](screenshots/main.png)`
+![alt text](/Screenchots/image.png)
 
 ## ✨ Fonctionnalités
 
