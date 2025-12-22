@@ -10,10 +10,20 @@ LIBS = -lgdi32 -luser32 -ladvapi32 -lpsapi
 SRC_DIR = src
 INC_DIR = include
 BUILD_DIR = build
+PLUGIN_DIR = $(SRC_DIR)/plugins
+RES_DIR = resources
 
 # Fichiers source
-SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/performance.c $(SRC_DIR)/config.c $(SRC_DIR)/startup.c
-OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/performance.o $(BUILD_DIR)/config.o $(BUILD_DIR)/startup.o $(BUILD_DIR)/resources.o
+SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/performance.c $(SRC_DIR)/config.c $(SRC_DIR)/startup.c \
+          $(SRC_DIR)/metric_plugin.c $(SRC_DIR)/config_parser.c \
+          $(PLUGIN_DIR)/plugin_cpu.c $(PLUGIN_DIR)/plugin_ram.c $(PLUGIN_DIR)/plugin_disk.c \
+          $(PLUGIN_DIR)/plugin_uptime.c $(PLUGIN_DIR)/plugin_process.c
+
+OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/performance.o $(BUILD_DIR)/config.o $(BUILD_DIR)/startup.o \
+          $(BUILD_DIR)/metric_plugin.o $(BUILD_DIR)/config_parser.o \
+          $(BUILD_DIR)/plugin_cpu.o $(BUILD_DIR)/plugin_ram.o $(BUILD_DIR)/plugin_disk.o \
+          $(BUILD_DIR)/plugin_uptime.o $(BUILD_DIR)/plugin_process.o \
+          $(BUILD_DIR)/resources.o
 
 # Nom de l'exécutable
 TARGET = PerformanceOverlay_v2.exe
@@ -46,9 +56,33 @@ $(BUILD_DIR)/config.o: $(SRC_DIR)/config.c
 $(BUILD_DIR)/startup.o: $(SRC_DIR)/startup.c
 	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
 
+# Compilation de metric_plugin.c
+$(BUILD_DIR)/metric_plugin.o: $(SRC_DIR)/metric_plugin.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+# Compilation de config_parser.c
+$(BUILD_DIR)/config_parser.o: $(SRC_DIR)/config_parser.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+# Compilation des plugins
+$(BUILD_DIR)/plugin_cpu.o: $(PLUGIN_DIR)/plugin_cpu.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+$(BUILD_DIR)/plugin_ram.o: $(PLUGIN_DIR)/plugin_ram.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+$(BUILD_DIR)/plugin_disk.o: $(PLUGIN_DIR)/plugin_disk.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+$(BUILD_DIR)/plugin_uptime.o: $(PLUGIN_DIR)/plugin_uptime.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+$(BUILD_DIR)/plugin_process.o: $(PLUGIN_DIR)/plugin_process.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
 # Compilation des ressources
-$(BUILD_DIR)/resources.o: resources.rc icon.ico
-	windres resources.rc -o $@
+$(BUILD_DIR)/resources.o: $(RES_DIR)/resources.rc $(RES_DIR)/icon.ico
+	windres $(RES_DIR)/resources.rc -o $@
 
 # Nettoyer les fichiers compilés
 clean:
@@ -64,9 +98,4 @@ run: all
 	@echo Lancement du programme...
 	@$(TARGET)
 
-# Créer l'icône (nécessite Python et Pillow)
-icon:
-	@echo Creation de l'icone...
-	@python create_icon.py
-
-.PHONY: all clean rebuild run icon
+.PHONY: all clean rebuild run

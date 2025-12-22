@@ -27,10 +27,29 @@ void LoadConfig(Config* config) {
         config->minimal_mode = (minimal != 0);
 
         fclose(file);
+
+        // Validation : Vérifier que les coordonnées sont dans les limites de l'écran
+        int screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        int screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+        // Si la fenêtre est complètement hors écran, la réinitialiser
+        if (config->x < screenLeft - 100 || config->x > screenWidth + screenLeft ||
+            config->y < screenTop - 100 || config->y > screenHeight + screenTop) {
+            // Centrer la fenêtre sur l'écran principal
+            config->x = 100;
+            config->y = 100;
+        }
+
+        // S'assurer que les coordonnées ne sont pas négatives sur l'écran principal
+        if (config->x < 0 && config->x > -280) config->x = 0;
+        if (config->y < 0 && config->y > -240) config->y = 0;
+
     } else {
         // Valeurs par défaut si le fichier n'existe pas
-        config->x = 10;
-        config->y = 10;
+        config->x = 100;
+        config->y = 100;
         config->minimal_mode = FALSE;
     }
 }

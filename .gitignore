@@ -10,8 +10,9 @@
 build/
 bin/
 
-# Fichiers de configuration générés
+# Fichiers de configuration générés (créés au runtime)
 config.txt
+config.ini
 
 # Fichiers temporaires Windows
 Thumbs.db
@@ -42,7 +43,23 @@ __pycache__/
 *.bc
 *.d
 
-# Dossiers de dépendances (si utilisés)
+# Dossiers de dépendances
 vendor/
 node_modules/
-inspi/ 
+
+# Dossiers de dev (non nécessaires pour release)
+inspi/
+other compilator's/
+
+# Fichiers de test temporaires
+test_*.c
+test_*.exe
+test_*.bat
+
+# Packages de release (seront dans releases GitHub)
+*.zip
+Performance-Overlay-*/
+
+# Fichiers de backup
+*.bak
+*.backup 

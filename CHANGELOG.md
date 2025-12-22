@@ -17,17 +17,22 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🎯 **Icône personnalisée** pour l'exécutable
 - 📝 **Métadonnées** dans les propriétés du fichier
 - 🔧 **Script de nettoyage** du cache d'icônes Windows (`refresh_icon.bat`)
+- 🛡️ **Protection anti-hors-écran** : Validation automatique des coordonnées
+- 📍 **Centrage automatique** : Repositionnement si position invalide
 
 ### Modifié
 - ⌨️ **Raccourci F1 → F3** pour éviter le conflit avec l'aide Windows 11
-- 📏 **Dimensions de la fenêtre** : 280x240px (mode complet), 280x120px (mode minimal)
-- 🎨 **Police** : Segoe UI avec ClearType
+- 📏 **Dimensions de la fenêtre** : 340x270px (mode complet), 340x180px (mode minimal)
+- 🎨 **Police** : Consolas (style cyberdeck)
 - 🔄 **Monitoring CPU** : Correction du bug (utilise maintenant `GetSystemTimes()` au lieu de `GetProcessTimes()`)
+- 🖼️ **Système de plugins** : Architecture modulaire pour les métriques
 
 ### Corrigé
 - 🐛 **Bug CPU** : Affichait l'utilisation du processus au lieu du système
 - 🎯 **Position du bouton X** : Repositionné en haut à droite
 - 🖼️ **Cache d'icônes** : Ajout d'un script de rafraîchissement
+- 🔧 **Widget invisible** : Correction du problème de position hors écran après changement de configuration multi-écrans
+- 📍 **Validation des coordonnées** : Détection et correction des positions invalides au démarrage
 
 ## [1.0.0] - 2024-XX-XX
 
