@@ -62,4 +62,7 @@ Performance-Overlay-*/
 
 # Fichiers de backup
 *.bak
-*.backup 
+*.backup
+
+# Guide de workflow de release (documentation interne)
+RELEASE_WORKFLOW.md
