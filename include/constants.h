@@ -13,6 +13,18 @@
 #define WINDOW_WIDTH 340
 #define WINDOW_HEIGHT_FULL 270
 #define WINDOW_HEIGHT_MIN 180
+#define WINDOW_HEIGHT_TASKS 320  // Hauteur pour la page Task Killer
+
+// ===== PAGES / ONGLETS =====
+#define PAGE_PERF 0
+#define PAGE_TASKS 1
+#define PAGE_PRAYER 2
+#define PAGE_COUNT 3
+
+// Dimensions onglets
+#define TAB_HEIGHT 24
+#define TAB_WIDTH 80
+#define TAB_MARGIN 4
 
 // ===== TIMERS ET PERFORMANCE =====
 #define TIMER_ID 1
@@ -55,5 +67,14 @@
 // ===== FICHIERS =====
 #define CONFIG_FILE "config.txt"
 #define CONFIG_FILE_INI "config.ini"
+
+// ===== TASK KILLER =====
+#define MAX_PROCESSES 50      // Nombre max de processus affichés
+#define PROCESS_LINE_HEIGHT 20
+
+// Couleurs spécifiques Task Killer
+#define COLOR_PROCESS_ACTIVE RGB(0, 255, 128)   // Vert pour processus actif
+#define COLOR_PROCESS_INACTIVE RGB(100, 100, 100)  // Gris pour inactif
+#define COLOR_KILL_BUTTON RGB(255, 80, 80)      // Rouge pour bouton Kill
 
 #endif // CONSTANTS_H
