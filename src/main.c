@@ -82,11 +82,72 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
     TaskKillerData* data = GetTaskKillerData();
     int y = 50;  // Apres les onglets
 
-    SelectObject(hdc, hFontNormal);
+    SelectObject(hdc, hFontSmall);
 
-    // Titre
-    SetTextColor(hdc, COLOR_CYAN);
-    TextOut(hdc, 16, y, ":: TASK KILLER ::", 17);
+    // ===== TOGGLE ALL/PORTS =====
+    const char* modeAll = "All";
+    const char* modePorts = "Ports";
+    int toggleX = 16;
+
+    // Bouton "All"
+    RECT allRect = {toggleX, y, toggleX + 40, y + 18};
+    HBRUSH allBrush = CreateSolidBrush(data->view_mode == VIEW_MODE_ALL ? COLOR_MAGENTA : COLOR_BORDER);
+    FillRect(hdc, &allRect, allBrush);
+    DeleteObject(allBrush);
+    SetTextColor(hdc, data->view_mode == VIEW_MODE_ALL ? RGB(0, 0, 0) : COLOR_TEXT_MUTED);
+    DrawText(hdc, modeAll, -1, &allRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // Bouton "Ports"
+    RECT portsRect = {toggleX + 42, y, toggleX + 92, y + 18};
+    HBRUSH portsBrush = CreateSolidBrush(data->view_mode == VIEW_MODE_PORTS ? COLOR_MAGENTA : COLOR_BORDER);
+    FillRect(hdc, &portsRect, portsBrush);
+    DeleteObject(portsBrush);
+    SetTextColor(hdc, data->view_mode == VIEW_MODE_PORTS ? RGB(0, 0, 0) : COLOR_TEXT_MUTED);
+    DrawText(hdc, modePorts, -1, &portsRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    y += 22;
+
+    // ===== CHAMP DE RECHERCHE =====
+    // Fond du champ de recherche
+    RECT searchRect = {16, y, width - 16, y + 20};
+    HBRUSH searchBg = CreateSolidBrush(data->filter_active ? RGB(40, 40, 50) : RGB(25, 25, 35));
+    FillRect(hdc, &searchRect, searchBg);
+    DeleteObject(searchBg);
+
+    // Bordure du champ
+    HPEN searchPen = CreatePen(PS_SOLID, 1, data->filter_active ? COLOR_CYAN : COLOR_BORDER);
+    SelectObject(hdc, searchPen);
+    MoveToEx(hdc, searchRect.left, searchRect.top, NULL);
+    LineTo(hdc, searchRect.right, searchRect.top);
+    LineTo(hdc, searchRect.right, searchRect.bottom);
+    LineTo(hdc, searchRect.left, searchRect.bottom);
+    LineTo(hdc, searchRect.left, searchRect.top);
+    DeleteObject(searchPen);
+
+    // Icone loupe
+    SetTextColor(hdc, COLOR_TEXT_MUTED);
+    TextOut(hdc, 20, y + 3, ">", 1);
+
+    // Texte du filtre ou placeholder
+    if (data->filter_text[0] != '\0') {
+        SetTextColor(hdc, COLOR_TEXT_PRIMARY);
+        TextOut(hdc, 32, y + 3, data->filter_text, (int)strlen(data->filter_text));
+        if (data->filter_active) {
+            int cursorX = 32 + (int)strlen(data->filter_text) * 7;
+            SetTextColor(hdc, COLOR_CYAN);
+            TextOut(hdc, cursorX, y + 3, "_", 1);
+        }
+    } else {
+        SetTextColor(hdc, COLOR_TEXT_MUTED);
+        TextOut(hdc, 32, y + 3, "Filter...", 9);
+    }
+
+    // Bouton clear si filtre actif
+    if (data->filter_text[0] != '\0') {
+        SetTextColor(hdc, COLOR_KILL_BUTTON);
+        TextOut(hdc, width - 30, y + 3, "X", 1);
+    }
+
     y += 24;
 
     // Separation
@@ -95,54 +156,81 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
     MoveToEx(hdc, 14, y, NULL);
     LineTo(hdc, width - 14, y);
     DeleteObject(sepPen);
-    y += 10;
+    y += 6;
 
-    // Positions des colonnes (alignees)
+    // Positions des colonnes selon le mode
     const int COL_INDICATOR = 16;
-    const int COL_PORT = 28;
-    const int COL_PROCESS = 90;
-    const int COL_PID = 200;
+    int COL_MEM_OR_PORT, COL_PROCESS, COL_PID;
+
+    if (data->view_mode == VIEW_MODE_ALL) {
+        COL_MEM_OR_PORT = 28;   // Colonne RAM
+        COL_PROCESS = 80;
+        COL_PID = 190;
+    } else {
+        COL_MEM_OR_PORT = 28;   // Colonne PORT
+        COL_PROCESS = 90;
+        COL_PID = 200;
+    }
 
     // Constantes scrollbar
     const int SCROLLBAR_WIDTH = 8;
     const int SCROLLBAR_X = width - 12;
-    const int LIST_START_Y = y + 18;  // Debut de la liste (apres en-tete)
-    const int maxVisible = 8;
+    const int LIST_START_Y = y + 16;
+    const int maxVisible = 6;  // Reduit pour le toggle
     const int LIST_HEIGHT = maxVisible * PROCESS_LINE_HEIGHT;
+
+    // Nombre de processus filtrés
+    int filteredCount = GetFilteredProcessCount(data);
 
     // En-tete
     SelectObject(hdc, hFontSmall);
     SetTextColor(hdc, COLOR_TEXT_MUTED);
-    TextOut(hdc, COL_PORT, y, "PORT", 4);
+    if (data->view_mode == VIEW_MODE_ALL) {
+        TextOut(hdc, COL_MEM_OR_PORT, y, "RAM", 3);
+    } else {
+        TextOut(hdc, COL_MEM_OR_PORT, y, "PORT", 4);
+    }
     TextOut(hdc, COL_PROCESS, y, "PROCESS", 7);
     TextOut(hdc, COL_PID, y, "PID", 3);
     y += 18;
 
-    // Liste des processus
+    // Liste des processus (filtrés)
     SelectObject(hdc, hFontNormal);
     int startIdx = data->scroll_offset;
     int endIdx = startIdx + maxVisible;
-    if (endIdx > data->count) endIdx = data->count;
+    if (endIdx > filteredCount) endIdx = filteredCount;
 
-    for (int i = startIdx; i < endIdx; i++) {
-        ProcessInfo* proc = &data->processes[i];
+    for (int visibleIdx = startIdx; visibleIdx < endIdx; visibleIdx++) {
+        ProcessInfo* proc = GetFilteredProcessByVisibleIndex(data, visibleIdx);
+        if (proc == NULL) continue;
 
-        // Indicateur actif (point vert/gris)
-        SetTextColor(hdc, proc->is_active ? COLOR_PROCESS_ACTIVE : COLOR_PROCESS_INACTIVE);
-        TextOut(hdc, COL_INDICATOR, y, "*", 1);
+        // Indicateur actif/critique
+        if (proc->is_critical) {
+            SetTextColor(hdc, COLOR_TEXT_MUTED);
+            TextOut(hdc, COL_INDICATOR, y, "!", 1);
+        } else {
+            SetTextColor(hdc, proc->is_active ? COLOR_PROCESS_ACTIVE : COLOR_PROCESS_INACTIVE);
+            TextOut(hdc, COL_INDICATOR, y, "*", 1);
+        }
 
-        // Port
+        // RAM ou Port selon le mode
         char line[64];
-        snprintf(line, sizeof(line), ":%d", proc->port);
-        SetTextColor(hdc, COLOR_CYAN);
-        TextOut(hdc, COL_PORT, y, line, (int)strlen(line));
+        if (data->view_mode == VIEW_MODE_ALL) {
+            snprintf(line, sizeof(line), "%luM", (unsigned long)proc->memory_mb);
+            SetTextColor(hdc, COLOR_CYAN);
+        } else {
+            snprintf(line, sizeof(line), ":%d", proc->port);
+            SetTextColor(hdc, COLOR_CYAN);
+        }
+        TextOut(hdc, COL_MEM_OR_PORT, y, line, (int)strlen(line));
 
         // Nom du processus (tronque si trop long)
         char procName[20];
-        strncpy(procName, proc->name, 12);
-        procName[12] = '\0';
-        if (strlen(proc->name) > 12) strcat(procName, "..");
-        SetTextColor(hdc, COLOR_TEXT_PRIMARY);
+        int maxLen = (data->view_mode == VIEW_MODE_ALL) ? 14 : 12;
+        strncpy(procName, proc->name, maxLen);
+        procName[maxLen] = '\0';
+        if ((int)strlen(proc->name) > maxLen) strcat(procName, "..");
+        SetTextColor(hdc, proc->is_critical ? COLOR_TEXT_MUTED : COLOR_TEXT_PRIMARY);
         TextOut(hdc, COL_PROCESS, y, procName, (int)strlen(procName));
 
         // PID
@@ -150,12 +238,12 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
         SetTextColor(hdc, COLOR_TEXT_MUTED);
         TextOut(hdc, COL_PID, y, line, (int)strlen(line));
 
-        // Bouton Kill (decale pour la scrollbar)
+        // Bouton Kill (grise si critique)
         RECT killRect = {width - 70, y - 2, width - 26, y + 16};
-        HBRUSH killBrush = CreateSolidBrush(COLOR_KILL_BUTTON);
+        HBRUSH killBrush = CreateSolidBrush(proc->is_critical ? COLOR_BORDER : COLOR_KILL_BUTTON);
         FillRect(hdc, &killRect, killBrush);
         DeleteObject(killBrush);
-        SetTextColor(hdc, RGB(255, 255, 255));
+        SetTextColor(hdc, proc->is_critical ? COLOR_TEXT_MUTED : RGB(255, 255, 255));
         SelectObject(hdc, hFontSmall);
         DrawText(hdc, "Kill", -1, &killRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         SelectObject(hdc, hFontNormal);
@@ -164,7 +252,7 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
     }
 
     // ===== SCROLLBAR LATERALE =====
-    if (data->count > maxVisible) {
+    if (filteredCount > maxVisible) {
         // Fond de la scrollbar (track)
         RECT trackRect = {SCROLLBAR_X - SCROLLBAR_WIDTH/2, LIST_START_Y,
                           SCROLLBAR_X + SCROLLBAR_WIDTH/2, LIST_START_Y + LIST_HEIGHT};
@@ -173,11 +261,10 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
         DeleteObject(trackBrush);
 
         // Calculer la taille et position du thumb
-        int totalItems = data->count;
-        int thumbHeight = (LIST_HEIGHT * maxVisible) / totalItems;
-        if (thumbHeight < 20) thumbHeight = 20;  // Hauteur minimale
+        int thumbHeight = (LIST_HEIGHT * maxVisible) / filteredCount;
+        if (thumbHeight < 20) thumbHeight = 20;
 
-        int maxScroll = totalItems - maxVisible;
+        int maxScroll = filteredCount - maxVisible;
         int thumbY = LIST_START_Y;
         if (maxScroll > 0) {
             thumbY = LIST_START_Y + (data->scroll_offset * (LIST_HEIGHT - thumbHeight)) / maxScroll;
@@ -191,10 +278,14 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
         DeleteObject(thumbBrush);
     }
 
-    // Message si aucun processus
-    if (data->count == 0) {
+    // Message si aucun processus ou aucun résultat
+    if (filteredCount == 0) {
         SetTextColor(hdc, COLOR_TEXT_MUTED);
-        TextOut(hdc, 16, y, "No processes with open ports", 28);
+        if (data->filter_text[0] != '\0') {
+            TextOut(hdc, 16, y, "No matching processes", 21);
+        } else {
+            TextOut(hdc, 16, y, "No processes with open ports", 28);
+        }
         y += 20;
     }
 
@@ -211,11 +302,13 @@ static void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal
     DrawText(hdc, "Refresh", -1, &refreshRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     // Info count + scroll info
-    char countStr[48];
-    if (data->count > maxVisible) {
+    char countStr[64];
+    if (data->filter_text[0] != '\0') {
+        snprintf(countStr, sizeof(countStr), "%d/%d filtered", filteredCount, data->count);
+    } else if (filteredCount > maxVisible) {
         snprintf(countStr, sizeof(countStr), "%d processes (%d-%d)",
-                 data->count, data->scroll_offset + 1,
-                 (data->scroll_offset + maxVisible > data->count) ? data->count : data->scroll_offset + maxVisible);
+                 filteredCount, data->scroll_offset + 1,
+                 (data->scroll_offset + maxVisible > filteredCount) ? filteredCount : data->scroll_offset + maxVisible);
     } else {
         snprintf(countStr, sizeof(countStr), "%d processes", data->count);
     }
@@ -365,8 +458,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 y += 14;
 
                 // Afficher les métriques via le système de plugins (v3.0)
-                const char* pluginOrder[] = {"CPU", "RAM", "Disk", "Process"};
-                int pluginCount = 4;
+                const char* pluginOrder[] = {"CPU", "RAM", "GPU", "Disk", "Process", "Volume", "DateTime"};
+                int pluginCount = 7;
 
                 for (int i = 0; i < pluginCount; i++) {
                     MetricData* metric = GetMetricByName(pluginOrder[i]);
@@ -393,7 +486,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 // Footer
                 SelectObject(hdc, hFontSmall);
                 SetTextColor(hdc, COLOR_TEXT_MUTED);
-                const char* footer = "F2 minimal | F3 hide | F4 tasks";
+                const char* footer = "F2 minimal | F4 tasks";
                 TextOut(hdc, 16, height - 26, footer, (int)strlen(footer));
             }
 
@@ -433,7 +526,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                                     SWP_NOMOVE | SWP_NOZORDER);
                         // Rafraichir les donnees si Task Killer
                         if (g_currentPage == PAGE_TASKS) {
-                            RefreshProcessList(GetTaskKillerData());
+                            RefreshCurrentView(GetTaskKillerData());
                         }
                         UpdateDisplay();
                     }
@@ -446,27 +539,101 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (g_currentPage == PAGE_TASKS) {
                 TaskKillerData* data = GetTaskKillerData();
 
+                // Constantes (doivent correspondre a DrawTaskKillerPage)
+                const int TOGGLE_Y = 50;
+                const int TOGGLE_HEIGHT = 18;
+                const int SEARCH_Y = 72;  // 50 + 22
+                const int SEARCH_HEIGHT = 20;
+                const int SCROLLBAR_WIDTH = 8;
+                const int SCROLLBAR_X = width - 12;
+                const int LIST_START_Y = 118;  // 50 + 22 + 24 + 6 + 16
+                const int maxVisible = 6;
+                const int LIST_HEIGHT = maxVisible * PROCESS_LINE_HEIGHT;
+                int filteredCount = GetFilteredProcessCount(data);
+
+                // Clic sur toggle "All"
+                if (pt.x >= 16 && pt.x <= 56 &&
+                    pt.y >= TOGGLE_Y && pt.y <= TOGGLE_Y + TOGGLE_HEIGHT) {
+                    if (data->view_mode != VIEW_MODE_ALL) {
+                        data->view_mode = VIEW_MODE_ALL;
+                        data->scroll_offset = 0;
+                        RefreshCurrentView(data);
+                        UpdateDisplay();
+                    }
+                    return 0;
+                }
+
+                // Clic sur toggle "Ports"
+                if (pt.x >= 58 && pt.x <= 108 &&
+                    pt.y >= TOGGLE_Y && pt.y <= TOGGLE_Y + TOGGLE_HEIGHT) {
+                    if (data->view_mode != VIEW_MODE_PORTS) {
+                        data->view_mode = VIEW_MODE_PORTS;
+                        data->scroll_offset = 0;
+                        RefreshCurrentView(data);
+                        UpdateDisplay();
+                    }
+                    return 0;
+                }
+
+                // Clic sur le champ de recherche
+                if (pt.x >= 16 && pt.x <= width - 16 &&
+                    pt.y >= SEARCH_Y && pt.y <= SEARCH_Y + SEARCH_HEIGHT) {
+                    // Clic sur le bouton X (clear filter)
+                    if (pt.x >= width - 35 && data->filter_text[0] != '\0') {
+                        data->filter_text[0] = '\0';
+                        data->scroll_offset = 0;
+                    }
+                    data->filter_active = TRUE;
+                    UpdateDisplay();
+                    return 0;
+                } else {
+                    // Clic ailleurs desactive le champ
+                    if (data->filter_active) {
+                        data->filter_active = FALSE;
+                        UpdateDisplay();
+                    }
+                }
+
                 // Bouton Refresh
                 if (pt.x >= 16 && pt.x <= 100 &&
                     pt.y >= height - 40 && pt.y <= height - 16) {
-                    RefreshProcessList(data);
+                    RefreshCurrentView(data);
+                    data->scroll_offset = 0;
                     UpdateDisplay();
                     return 0;
                 }
 
-                // Boutons Kill pour chaque processus
-                int y = 102;  // Position de la premiere ligne de processus
-                int maxVisible = 8;
+                // Clic sur la scrollbar
+                if (filteredCount > maxVisible &&
+                    pt.x >= SCROLLBAR_X - SCROLLBAR_WIDTH &&
+                    pt.x <= SCROLLBAR_X + SCROLLBAR_WIDTH &&
+                    pt.y >= LIST_START_Y && pt.y <= LIST_START_Y + LIST_HEIGHT) {
+                    // Calculer la nouvelle position de scroll
+                    int clickPos = pt.y - LIST_START_Y;
+                    int maxScroll = filteredCount - maxVisible;
+                    int newOffset = (clickPos * maxScroll) / LIST_HEIGHT;
+                    if (newOffset < 0) newOffset = 0;
+                    if (newOffset > maxScroll) newOffset = maxScroll;
+                    data->scroll_offset = newOffset;
+                    UpdateDisplay();
+                    return 0;
+                }
+
+                // Boutons Kill pour chaque processus (utilise l'index filtre)
+                int y = LIST_START_Y;
                 int startIdx = data->scroll_offset;
                 int endIdx = startIdx + maxVisible;
-                if (endIdx > data->count) endIdx = data->count;
+                if (endIdx > filteredCount) endIdx = filteredCount;
 
-                for (int i = startIdx; i < endIdx; i++) {
-                    if (pt.x >= width - 60 && pt.x <= width - 16 &&
+                for (int visibleIdx = startIdx; visibleIdx < endIdx; visibleIdx++) {
+                    if (pt.x >= width - 70 && pt.x <= width - 26 &&
                         pt.y >= y - 2 && pt.y <= y + 16) {
-                        // Clic sur bouton Kill
-                        if (KillProcessByIndex(data, i)) {
-                            UpdateDisplay();
+                        // Convertir l'index visible en index reel
+                        int realIdx = GetRealIndexFromVisibleIndex(data, visibleIdx);
+                        if (realIdx >= 0) {
+                            if (KillProcessByIndex(data, realIdx)) {
+                                UpdateDisplay();
+                            }
                         }
                         return 0;
                     }
@@ -503,11 +670,65 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
             return 0;
 
+        case WM_MOUSEWHEEL: {
+            // Gestion de la molette pour le scroll dans Task Killer
+            if (g_currentPage == PAGE_TASKS) {
+                TaskKillerData* data = GetTaskKillerData();
+                const int maxVisible = 6;
+                int filteredCount = GetFilteredProcessCount(data);
+
+                if (filteredCount > maxVisible) {
+                    int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+                    int scrollLines = delta / WHEEL_DELTA;
+
+                    data->scroll_offset -= scrollLines;
+
+                    int maxScroll = filteredCount - maxVisible;
+                    if (data->scroll_offset < 0) data->scroll_offset = 0;
+                    if (data->scroll_offset > maxScroll) data->scroll_offset = maxScroll;
+
+                    UpdateDisplay();
+                }
+            }
+            return 0;
+        }
+
+        case WM_CHAR: {
+            // Gestion de la saisie pour le filtre Task Killer
+            if (g_currentPage == PAGE_TASKS) {
+                TaskKillerData* data = GetTaskKillerData();
+
+                if (data->filter_active) {
+                    char c = (char)wParam;
+                    int len = (int)strlen(data->filter_text);
+
+                    if (c == '\b') {
+                        // Backspace - supprimer dernier caractere
+                        if (len > 0) {
+                            data->filter_text[len - 1] = '\0';
+                            data->scroll_offset = 0;
+                            UpdateDisplay();
+                        }
+                    } else if (c == 27) {
+                        // Escape - desactiver le filtre
+                        data->filter_active = FALSE;
+                        UpdateDisplay();
+                    } else if (c >= 32 && c < 127 && len < 30) {
+                        // Caractere imprimable
+                        data->filter_text[len] = c;
+                        data->filter_text[len + 1] = '\0';
+                        data->scroll_offset = 0;
+                        UpdateDisplay();
+                    }
+                    return 0;
+                }
+            }
+            break;
+        }
+
         case WM_KEYDOWN:
             // Utiliser les touches configurables (v3.0)
-            if (wParam == g_config.toggle_visibility_key) {
-                ShowWindow(hwnd, IsWindowVisible(hwnd) ? SW_HIDE : SW_SHOW);
-            } else if (wParam == g_config.toggle_minimal_key) {
+            if (wParam == g_config.toggle_minimal_key) {
                 // F2 - Mode minimal (seulement sur page Perf)
                 if (g_currentPage == PAGE_PERF) {
                     g_config.minimal_mode = !g_config.minimal_mode;
@@ -615,6 +836,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     RegisterMetricPlugin(&DiskPlugin);
     RegisterMetricPlugin(&UptimePlugin);
     RegisterMetricPlugin(&ProcessPlugin);
+    RegisterMetricPlugin(&NetworkPlugin);
+    RegisterMetricPlugin(&DateTimePlugin);
+    RegisterMetricPlugin(&VolumePlugin);
+    RegisterMetricPlugin(&GPUPlugin);
 
     // Activer/désactiver plugins selon config
     EnablePlugin("CPU", g_config.cpu_enabled);
@@ -622,6 +847,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     EnablePlugin("Disk", g_config.disk_enabled);
     EnablePlugin("Uptime", g_config.uptime_enabled);
     EnablePlugin("Process", g_config.process_enabled);
+    // Nouveaux plugins - activés par défaut
+    EnablePlugin("Network", TRUE);
+    EnablePlugin("DateTime", TRUE);
+    EnablePlugin("Volume", TRUE);
+    EnablePlugin("GPU", TRUE);
 
     // Initialiser le Task Killer
     InitTaskKiller();

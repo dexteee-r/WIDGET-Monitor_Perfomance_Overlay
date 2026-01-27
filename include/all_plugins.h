@@ -14,5 +14,9 @@ extern MetricPlugin RAMPlugin;
 extern MetricPlugin DiskPlugin;
 extern MetricPlugin UptimePlugin;
 extern MetricPlugin ProcessPlugin;
+extern MetricPlugin NetworkPlugin;
+extern MetricPlugin DateTimePlugin;
+extern MetricPlugin VolumePlugin;
+extern MetricPlugin GPUPlugin;
 
 #endif // ALL_PLUGINS_H

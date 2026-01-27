@@ -5,10 +5,11 @@
 ![Windows](https://img.shields.io/badge/Windows-11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![C](https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![Vibecoding](https://img.shields.io/badge/Made%20with-Vibecoding%20🎵-ff69b4?style=for-the-badge)
 
 **Un moniteur de performances système léger et moderne pour Windows 11**
 
-*Overlay transparent en temps réel • Zero dépendances • < 50 KB*
+*Overlay transparent en temps réel • Zero dépendances • Codé en Vibecoding avec Claude AI*
 
 [Fonctionnalités](#-fonctionnalités) • [Installation](#-installation) • [Utilisation](#-utilisation) • [Compilation](#-compilation)
 
@@ -22,12 +23,15 @@
 
 ## ✨ Fonctionnalités
 
-### **Métriques en Temps Réel** (7 indicateurs)
+### **Métriques en Temps Réel** (9 indicateurs)
 - 🖥️ **CPU** : Utilisation (%) + Fréquence (GHz)
 - 💾 **RAM** : Utilisée/Totale (GB) + Pourcentage
+- 🎮 **GPU** : Nom de la carte graphique
 - 💿 **Disque** : Utilisation du disque C:
-- ⏱️ **Uptime** : Temps depuis le démarrage système
 - 📊 **Processus** : Nombre de processus actifs
+- 🔊 **Volume** : Volume système avec barre visuelle
+- 🕐 **DateTime** : Date et heure en temps réel
+- ⏱️ **Uptime** : Temps depuis le démarrage système
 - 📈 **Barres visuelles** : Indicateurs colorés (vert/orange/rouge)
 
 ### **Interface Moderne**
@@ -98,10 +102,16 @@ windres resources.rc -o build/resources.o
 ### **Raccourcis Clavier**
 | Touche | Action |
 |--------|--------|
-| **F3** | Afficher/Masquer l'overlay |
 | **F2** | Basculer mode minimal ↔ complet |
+| **F4** | Basculer entre page Perf et Task Killer |
 | **Clic + Glisser** | Déplacer la fenêtre |
 | **Clic sur X** | Fermer l'application |
+
+### **Task Killer** (nouveau)
+- Liste tous les processus (triés par RAM) ou uniquement ceux avec ports ouverts
+- Filtrage par nom de processus
+- Kill de processus en un clic
+- Protection des processus système critiques
 
 ### **Modes d'Affichage**
 

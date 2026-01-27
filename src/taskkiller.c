@@ -28,8 +28,10 @@
 #include "../include/taskkiller.h"
 #include <tlhelp32.h>
 #include <iphlpapi.h>
+#include <psapi.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Donnees globales du Task Killer
 static TaskKillerData g_taskData = {0};
@@ -234,7 +236,114 @@ void InitTaskKiller(void) {
     g_taskData.selected_index = -1;
     g_taskData.last_kill_result = KILL_SUCCESS;
     g_taskData.last_kill_message[0] = '\0';
-    RefreshProcessList(&g_taskData);
+    g_taskData.filter_text[0] = '\0';
+    g_taskData.filter_active = FALSE;
+    g_taskData.view_mode = VIEW_MODE_ALL;  // Par defaut: tous les processus
+    RefreshCurrentView(&g_taskData);
+}
+
+/*
+ * MatchesFilter
+ * Verifie si un processus correspond au filtre (nom ou port)
+ */
+BOOL MatchesFilter(ProcessInfo* proc, const char* filter) {
+    if (filter == NULL || filter[0] == '\0') {
+        return TRUE;  // Pas de filtre = tout afficher
+    }
+
+    // Verifier si le filtre est un numero de port
+    int filterPort = atoi(filter);
+    if (filterPort > 0 && proc->port == (WORD)filterPort) {
+        return TRUE;
+    }
+
+    // Verifier si le nom contient le filtre (insensible a la casse)
+    char lowerName[MAX_PROCESS_NAME];
+    char lowerFilter[32];
+
+    strncpy(lowerName, proc->name, MAX_PROCESS_NAME - 1);
+    lowerName[MAX_PROCESS_NAME - 1] = '\0';
+    strncpy(lowerFilter, filter, 31);
+    lowerFilter[31] = '\0';
+
+    // Convertir en minuscules
+    for (int i = 0; lowerName[i]; i++) {
+        if (lowerName[i] >= 'A' && lowerName[i] <= 'Z') {
+            lowerName[i] = lowerName[i] + 32;
+        }
+    }
+    for (int i = 0; lowerFilter[i]; i++) {
+        if (lowerFilter[i] >= 'A' && lowerFilter[i] <= 'Z') {
+            lowerFilter[i] = lowerFilter[i] + 32;
+        }
+    }
+
+    return strstr(lowerName, lowerFilter) != NULL;
+}
+
+/*
+ * GetFilteredProcessCount
+ * Retourne le nombre de processus qui correspondent au filtre
+ */
+int GetFilteredProcessCount(TaskKillerData* data) {
+    if (data->filter_text[0] == '\0') {
+        return data->count;
+    }
+
+    int count = 0;
+    for (int i = 0; i < data->count; i++) {
+        if (MatchesFilter(&data->processes[i], data->filter_text)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+/*
+ * GetFilteredProcessByVisibleIndex
+ * Retourne le processus à l'index visible (après filtrage)
+ * Retourne NULL si l'index est invalide
+ */
+ProcessInfo* GetFilteredProcessByVisibleIndex(TaskKillerData* data, int visibleIndex) {
+    if (data->filter_text[0] == '\0') {
+        // Pas de filtre, index direct
+        if (visibleIndex >= 0 && visibleIndex < data->count) {
+            return &data->processes[visibleIndex];
+        }
+        return NULL;
+    }
+
+    int currentVisible = 0;
+    for (int i = 0; i < data->count; i++) {
+        if (MatchesFilter(&data->processes[i], data->filter_text)) {
+            if (currentVisible == visibleIndex) {
+                return &data->processes[i];
+            }
+            currentVisible++;
+        }
+    }
+    return NULL;
+}
+
+/*
+ * GetRealIndexFromVisibleIndex
+ * Convertit un index visible (filtré) en index réel dans le tableau
+ */
+int GetRealIndexFromVisibleIndex(TaskKillerData* data, int visibleIndex) {
+    if (data->filter_text[0] == '\0') {
+        return visibleIndex;
+    }
+
+    int currentVisible = 0;
+    for (int i = 0; i < data->count; i++) {
+        if (MatchesFilter(&data->processes[i], data->filter_text)) {
+            if (currentVisible == visibleIndex) {
+                return i;
+            }
+            currentVisible++;
+        }
+    }
+    return -1;
 }
 
 /*
@@ -402,10 +511,119 @@ KillResult KillProcessByIndex(TaskKillerData* data, int index) {
 
     // Rafraichir seulement si le kill a reussi
     if (result == KILL_SUCCESS) {
-        RefreshProcessList(data);
+        RefreshCurrentView(data);
     }
 
     return result;
+}
+
+/*
+ * CompareByMemory
+ * Compare deux processus par leur usage memoire (decroissant)
+ */
+static int CompareByMemory(const void* a, const void* b) {
+    const ProcessInfo* pa = (const ProcessInfo*)a;
+    const ProcessInfo* pb = (const ProcessInfo*)b;
+    if (pb->memory_mb > pa->memory_mb) return 1;
+    if (pb->memory_mb < pa->memory_mb) return -1;
+    return 0;
+}
+
+/*
+ * RefreshAllProcesses
+ * Liste tous les processus tries par usage memoire
+ */
+static void RefreshAllProcesses(TaskKillerData* data) {
+    if (data == NULL) return;
+
+    memset(data->processes, 0, sizeof(data->processes));
+    data->count = 0;
+
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    PROCESSENTRY32W pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32W);
+
+    if (!Process32FirstW(hSnapshot, &pe32)) {
+        CloseHandle(hSnapshot);
+        return;
+    }
+
+    do {
+        DWORD pid = pe32.th32ProcessID;
+
+        // Ignorer PID 0 et 4 (System)
+        if (pid == 0 || pid == 4) {
+            continue;
+        }
+
+        if (data->count >= MAX_TASK_PROCESSES) {
+            break;
+        }
+
+        ProcessInfo* proc = &data->processes[data->count];
+        proc->pid = pid;
+        proc->port = 0;  // Pas de port
+        proc->is_active = TRUE;
+
+        // Nom du processus
+        WideCharToMultiByte(CP_ACP, 0, pe32.szExeFile, -1,
+                           proc->name, MAX_PROCESS_NAME, NULL, NULL);
+
+        // Marquer si processus critique
+        proc->is_critical = IsSystemCriticalProcess(proc->name, pid);
+
+        // Obtenir l'usage memoire
+        HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+        if (hProcess != NULL) {
+            PROCESS_MEMORY_COUNTERS pmc;
+            if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))) {
+                proc->memory_mb = pmc.WorkingSetSize / (1024 * 1024);  // Convertir en MB
+            }
+            CloseHandle(hProcess);
+        }
+
+        data->count++;
+    } while (Process32NextW(hSnapshot, &pe32));
+
+    CloseHandle(hSnapshot);
+
+    // Trier par usage memoire (decroissant)
+    qsort(data->processes, data->count, sizeof(ProcessInfo), CompareByMemory);
+}
+
+/*
+ * RefreshCurrentView
+ * Rafraichit selon le mode actuel
+ */
+void RefreshCurrentView(TaskKillerData* data) {
+    if (data == NULL) return;
+
+    if (data->view_mode == VIEW_MODE_ALL) {
+        RefreshAllProcesses(data);
+    } else {
+        RefreshProcessList(data);
+    }
+}
+
+/*
+ * ToggleViewMode
+ * Bascule entre les modes d'affichage
+ */
+void ToggleViewMode(TaskKillerData* data) {
+    if (data == NULL) return;
+
+    if (data->view_mode == VIEW_MODE_ALL) {
+        data->view_mode = VIEW_MODE_PORTS;
+    } else {
+        data->view_mode = VIEW_MODE_ALL;
+    }
+
+    data->scroll_offset = 0;
+    RefreshCurrentView(data);
 }
 
 /*

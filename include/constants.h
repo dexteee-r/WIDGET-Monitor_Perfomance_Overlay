@@ -11,8 +11,8 @@
 
 // ===== DIMENSIONS FENÊTRE =====
 #define WINDOW_WIDTH 340
-#define WINDOW_HEIGHT_FULL 270
-#define WINDOW_HEIGHT_MIN 180
+#define WINDOW_HEIGHT_FULL 280  // Augmenté pour 8 plugins
+#define WINDOW_HEIGHT_MIN 220   // Augmenté pour les plugins essentiels
 #define WINDOW_HEIGHT_TASKS 320  // Hauteur pour la page Task Killer
 
 // ===== PAGES / ONGLETS =====
