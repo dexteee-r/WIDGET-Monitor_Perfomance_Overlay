@@ -136,6 +136,22 @@ void SetDefaultConfigINI(ConfigINI* config) {
     config->disk_enabled = TRUE;
     config->uptime_enabled = TRUE;
     config->process_enabled = TRUE;
+
+    // [Theme]
+    config->theme_index = 0;  // Neon Dark par défaut
+
+    // [Prayer]
+    config->prayer_enabled = TRUE;
+    config->prayer_use_api = TRUE;
+    strcpy(config->prayer_city, "Paris");
+    strcpy(config->prayer_country, "France");
+    config->prayer_method = 2;  // ISNA (Islamic Society of North America)
+    // Horaires manuels par défaut (fallback)
+    strcpy(config->prayer_fajr, "06:00");
+    strcpy(config->prayer_dhuhr, "13:00");
+    strcpy(config->prayer_asr, "16:00");
+    strcpy(config->prayer_maghrib, "19:00");
+    strcpy(config->prayer_isha, "21:00");
 }
 
 /*
@@ -229,6 +245,52 @@ void LoadConfigINI(ConfigINI* config, const char* filename) {
             else if (strcmp(key, "uptime_enabled") == 0) config->uptime_enabled = ParseBool(value);
             else if (strcmp(key, "process_enabled") == 0) config->process_enabled = ParseBool(value);
         }
+        else if (strcmp(section, "Theme") == 0) {
+            if (strcmp(key, "index") == 0) {
+                config->theme_index = atoi(value);
+                if (config->theme_index < 0 || config->theme_index > 4) {
+                    config->theme_index = 0;
+                }
+            }
+        }
+        else if (strcmp(section, "Prayer") == 0) {
+            if (strcmp(key, "enabled") == 0) config->prayer_enabled = ParseBool(value);
+            else if (strcmp(key, "use_api") == 0) config->prayer_use_api = ParseBool(value);
+            else if (strcmp(key, "city") == 0) {
+                strncpy(config->prayer_city, value, sizeof(config->prayer_city) - 1);
+                config->prayer_city[sizeof(config->prayer_city) - 1] = '\0';
+            }
+            else if (strcmp(key, "country") == 0) {
+                strncpy(config->prayer_country, value, sizeof(config->prayer_country) - 1);
+                config->prayer_country[sizeof(config->prayer_country) - 1] = '\0';
+            }
+            else if (strcmp(key, "method") == 0) {
+                config->prayer_method = atoi(value);
+                if (config->prayer_method < 0 || config->prayer_method > 15) {
+                    config->prayer_method = 2;
+                }
+            }
+            else if (strcmp(key, "fajr") == 0) {
+                strncpy(config->prayer_fajr, value, sizeof(config->prayer_fajr) - 1);
+                config->prayer_fajr[sizeof(config->prayer_fajr) - 1] = '\0';
+            }
+            else if (strcmp(key, "dhuhr") == 0) {
+                strncpy(config->prayer_dhuhr, value, sizeof(config->prayer_dhuhr) - 1);
+                config->prayer_dhuhr[sizeof(config->prayer_dhuhr) - 1] = '\0';
+            }
+            else if (strcmp(key, "asr") == 0) {
+                strncpy(config->prayer_asr, value, sizeof(config->prayer_asr) - 1);
+                config->prayer_asr[sizeof(config->prayer_asr) - 1] = '\0';
+            }
+            else if (strcmp(key, "maghrib") == 0) {
+                strncpy(config->prayer_maghrib, value, sizeof(config->prayer_maghrib) - 1);
+                config->prayer_maghrib[sizeof(config->prayer_maghrib) - 1] = '\0';
+            }
+            else if (strcmp(key, "isha") == 0) {
+                strncpy(config->prayer_isha, value, sizeof(config->prayer_isha) - 1);
+                config->prayer_isha[sizeof(config->prayer_isha) - 1] = '\0';
+            }
+        }
     }
 
     fclose(file);
@@ -277,7 +339,27 @@ void SaveConfigINI(const ConfigINI* config, const char* filename) {
     fprintf(file, "ram_enabled = %s\n", config->ram_enabled ? "true" : "false");
     fprintf(file, "disk_enabled = %s\n", config->disk_enabled ? "true" : "false");
     fprintf(file, "uptime_enabled = %s\n", config->uptime_enabled ? "true" : "false");
-    fprintf(file, "process_enabled = %s\n", config->process_enabled ? "true" : "false");
+    fprintf(file, "process_enabled = %s\n\n", config->process_enabled ? "true" : "false");
+
+    fprintf(file, "[Theme]\n");
+    fprintf(file, "; Index du thème (0=Neon Dark, 1=Cyberpunk, 2=Matrix, 3=Ocean, 4=Sunset)\n");
+    fprintf(file, "index = %d\n\n", config->theme_index);
+
+    fprintf(file, "[Prayer]\n");
+    fprintf(file, "; Configuration des horaires de prière\n");
+    fprintf(file, "enabled = %s\n", config->prayer_enabled ? "true" : "false");
+    fprintf(file, "; use_api = true utilise l'API Aladhan, false = horaires manuels\n");
+    fprintf(file, "use_api = %s\n", config->prayer_use_api ? "true" : "false");
+    fprintf(file, "city = %s\n", config->prayer_city);
+    fprintf(file, "country = %s\n", config->prayer_country);
+    fprintf(file, "; Méthodes: 2=ISNA, 3=MWL, 4=Makkah, 5=Egypt, 7=Tehran, 12=UOIF\n");
+    fprintf(file, "method = %d\n", config->prayer_method);
+    fprintf(file, "; Horaires manuels (utilisés si use_api = false)\n");
+    fprintf(file, "fajr = %s\n", config->prayer_fajr);
+    fprintf(file, "dhuhr = %s\n", config->prayer_dhuhr);
+    fprintf(file, "asr = %s\n", config->prayer_asr);
+    fprintf(file, "maghrib = %s\n", config->prayer_maghrib);
+    fprintf(file, "isha = %s\n", config->prayer_isha);
 
     fclose(file);
 }

@@ -4,7 +4,7 @@
 # Compilateur et options
 CC = gcc
 CFLAGS = -Wall -O2 -mwindows
-LIBS = -lgdi32 -luser32 -ladvapi32 -lpsapi -liphlpapi -lws2_32 -lole32 -luuid
+LIBS = -lgdi32 -luser32 -ladvapi32 -lpsapi -liphlpapi -lws2_32 -lole32 -luuid -lwininet
 
 # Dossiers
 SRC_DIR = src
@@ -19,14 +19,14 @@ SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/performance.c $(SRC_DIR)/config.c $(SRC_D
           $(PLUGIN_DIR)/plugin_cpu.c $(PLUGIN_DIR)/plugin_ram.c $(PLUGIN_DIR)/plugin_disk.c \
           $(PLUGIN_DIR)/plugin_uptime.c $(PLUGIN_DIR)/plugin_process.c \
           $(PLUGIN_DIR)/plugin_network.c $(PLUGIN_DIR)/plugin_datetime.c \
-          $(PLUGIN_DIR)/plugin_volume.c $(PLUGIN_DIR)/plugin_gpu.c
+          $(PLUGIN_DIR)/plugin_volume.c $(PLUGIN_DIR)/plugin_gpu.c $(PLUGIN_DIR)/plugin_prayer.c
 
 OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/performance.o $(BUILD_DIR)/config.o $(BUILD_DIR)/startup.o \
           $(BUILD_DIR)/metric_plugin.o $(BUILD_DIR)/config_parser.o $(BUILD_DIR)/taskkiller.o \
           $(BUILD_DIR)/plugin_cpu.o $(BUILD_DIR)/plugin_ram.o $(BUILD_DIR)/plugin_disk.o \
           $(BUILD_DIR)/plugin_uptime.o $(BUILD_DIR)/plugin_process.o \
           $(BUILD_DIR)/plugin_network.o $(BUILD_DIR)/plugin_datetime.o \
-          $(BUILD_DIR)/plugin_volume.o $(BUILD_DIR)/plugin_gpu.o \
+          $(BUILD_DIR)/plugin_volume.o $(BUILD_DIR)/plugin_gpu.o $(BUILD_DIR)/plugin_prayer.o \
           $(BUILD_DIR)/resources.o
 
 # Nom de l'exécutable
@@ -98,6 +98,9 @@ $(BUILD_DIR)/plugin_volume.o: $(PLUGIN_DIR)/plugin_volume.c
 	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
 
 $(BUILD_DIR)/plugin_gpu.o: $(PLUGIN_DIR)/plugin_gpu.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+$(BUILD_DIR)/plugin_prayer.o: $(PLUGIN_DIR)/plugin_prayer.c
 	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
 
 # Compilation des ressources

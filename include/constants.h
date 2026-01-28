@@ -14,11 +14,12 @@
 #define WINDOW_HEIGHT_FULL 280  // Augmenté pour 8 plugins
 #define WINDOW_HEIGHT_MIN 220   // Augmenté pour les plugins essentiels
 #define WINDOW_HEIGHT_TASKS 320  // Hauteur pour la page Task Killer
+#define WINDOW_HEIGHT_SETTINGS 350  // Hauteur pour la page Settings
 
 // ===== PAGES / ONGLETS =====
 #define PAGE_PERF 0
 #define PAGE_TASKS 1
-#define PAGE_PRAYER 2
+#define PAGE_SETTINGS 2
 #define PAGE_COUNT 3
 
 // Dimensions onglets

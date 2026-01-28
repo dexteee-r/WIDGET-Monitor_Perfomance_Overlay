@@ -43,6 +43,22 @@ typedef struct {
     BOOL disk_enabled;
     BOOL uptime_enabled;
     BOOL process_enabled;
+
+    // [Theme]
+    int theme_index;  // Index du thème sélectionné (0-4)
+
+    // [Prayer]
+    BOOL prayer_enabled;
+    BOOL prayer_use_api;      // TRUE = utiliser API, FALSE = horaires manuels
+    char prayer_city[64];     // Ville pour l'API (ex: "Paris")
+    char prayer_country[64];  // Pays pour l'API (ex: "France")
+    int prayer_method;        // Méthode de calcul (2=ISNA, 3=MWL, 5=Egypt, etc.)
+    // Horaires manuels (fallback si API désactivée ou échec)
+    char prayer_fajr[8];      // Format "HH:MM"
+    char prayer_dhuhr[8];
+    char prayer_asr[8];
+    char prayer_maghrib[8];
+    char prayer_isha[8];
 } ConfigINI;
 
 // Fonctions de gestion de configuration INI

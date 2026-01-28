@@ -6,6 +6,7 @@
  */
 
 #include <windows.h>
+#include <shellapi.h>
 #include <stdio.h>
 #include <string.h>
 #include "../include/performance.h"
@@ -28,14 +29,77 @@ char g_bannerTop[64] = "==[ SYSTEM OVERLAY v3 ]==";
 char g_bannerBottom[64] = ":: PLUGIN SYSTEM ::";
 
 // Systeme de pages
-int g_currentPage = PAGE_PERF;   // Page actuelle (0=Perf, 1=Tasks, 2=Prayer)
-const char* g_pageNames[] = {"Perf", "Tasks", "Prayer"};
+int g_currentPage = PAGE_PERF;   // Page actuelle (0=Perf, 1=Tasks, 2=Settings)
+const char* g_pageNames[] = {"Perf", "Tasks", "Settings"};
+
+// System Tray
+#define WM_TRAYICON (WM_USER + 1)
+#define ID_TRAY_SHOW 1001
+#define ID_TRAY_SETTINGS 1002
+#define ID_TRAY_EXIT 1003
+static NOTIFYICONDATA g_nid = {0};
+static BOOL g_trayIconAdded = FALSE;
 
 static int GetWindowHeightForMode(BOOL minimal) {
     if (g_currentPage == PAGE_TASKS) {
         return WINDOW_HEIGHT_TASKS;
     }
+    if (g_currentPage == PAGE_SETTINGS) {
+        return WINDOW_HEIGHT_SETTINGS;
+    }
     return minimal ? WINDOW_HEIGHT_MIN : WINDOW_HEIGHT_FULL;
+}
+
+// Structure pour les thèmes/skins
+typedef struct {
+    const char* name;
+    COLORREF bg;
+    COLORREF panel;
+    COLORREF border;
+    COLORREF accent;
+    COLORREF accent2;
+    COLORREF text;
+    COLORREF textMuted;
+} ThemeSkin;
+
+// Thèmes disponibles
+static ThemeSkin g_themes[] = {
+    {"Neon Dark",    RGB(8, 10, 18),    RGB(16, 20, 30),   RGB(40, 45, 60),    RGB(0, 230, 255),   RGB(255, 64, 180),  RGB(200, 210, 230), RGB(120, 130, 150)},
+    {"Cyberpunk",    RGB(15, 5, 20),    RGB(30, 10, 40),   RGB(60, 30, 70),    RGB(255, 64, 180),  RGB(0, 255, 255),   RGB(255, 200, 255), RGB(150, 100, 150)},
+    {"Matrix",       RGB(0, 10, 0),     RGB(0, 20, 5),     RGB(0, 40, 10),     RGB(0, 255, 65),    RGB(100, 255, 100), RGB(150, 255, 150), RGB(50, 150, 50)},
+    {"Ocean",        RGB(5, 15, 25),    RGB(10, 30, 50),   RGB(20, 50, 80),    RGB(100, 200, 255), RGB(50, 150, 255),  RGB(200, 230, 255), RGB(100, 150, 180)},
+    {"Sunset",       RGB(25, 10, 10),   RGB(40, 20, 15),   RGB(60, 35, 25),    RGB(255, 150, 50),  RGB(255, 100, 100), RGB(255, 220, 200), RGB(180, 130, 100)},
+};
+static int g_selectedTheme = 0;
+static int g_themeCount = 5;
+
+// Couleurs actives du thème (utilisées pour le dessin)
+static COLORREF g_colorBg;
+static COLORREF g_colorPanel;
+static COLORREF g_colorBorder;
+static COLORREF g_colorAccent;
+static COLORREF g_colorAccent2;
+static COLORREF g_colorText;
+static COLORREF g_colorTextMuted;
+
+/*
+ * ApplyTheme
+ * Applique le thème sélectionné aux couleurs globales
+ */
+static void ApplyTheme(int themeIndex) {
+    if (themeIndex < 0 || themeIndex >= g_themeCount) {
+        themeIndex = 0;
+    }
+    g_selectedTheme = themeIndex;
+
+    ThemeSkin* theme = &g_themes[themeIndex];
+    g_colorBg = theme->bg;
+    g_colorPanel = theme->panel;
+    g_colorBorder = theme->border;
+    g_colorAccent = theme->accent;
+    g_colorAccent2 = theme->accent2;
+    g_colorText = theme->text;
+    g_colorTextMuted = theme->textMuted;
 }
 
 /*
@@ -49,19 +113,16 @@ static void DrawTabs(HDC hdc, int width, HFONT hFontSmall) {
     SelectObject(hdc, hFontSmall);
 
     for (int i = 0; i < PAGE_COUNT; i++) {
-        // Si page Prayer pas encore implementee, on la cache
-        if (i == PAGE_PRAYER) continue;
-
         RECT tabRect = {tabX, tabY, tabX + TAB_WIDTH, tabY + TAB_HEIGHT};
 
         // Fond de l'onglet
         HBRUSH tabBrush;
         if (i == g_currentPage) {
-            tabBrush = CreateSolidBrush(COLOR_MAGENTA);
+            tabBrush = CreateSolidBrush(g_colorAccent2);
             SetTextColor(hdc, RGB(0, 0, 0));
         } else {
-            tabBrush = CreateSolidBrush(COLOR_BORDER);
-            SetTextColor(hdc, COLOR_TEXT_MUTED);
+            tabBrush = CreateSolidBrush(g_colorBorder);
+            SetTextColor(hdc, g_colorTextMuted);
         }
         FillRect(hdc, &tabRect, tabBrush);
         DeleteObject(tabBrush);
@@ -72,6 +133,72 @@ static void DrawTabs(HDC hdc, int width, HFONT hFontSmall) {
 
         tabX += TAB_WIDTH + TAB_MARGIN;
     }
+}
+
+/*
+ * DrawSettingsPage
+ * Dessine la page des paramètres/skins
+ */
+static void DrawSettingsPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT hFontSmall) {
+    int y = 50;  // Après les onglets
+
+    SelectObject(hdc, hFontNormal);
+    SetTextColor(hdc, g_colorAccent);
+    TextOut(hdc, 16, y, ":: THEMES / SKINS ::", 20);
+    y += 30;
+
+    SelectObject(hdc, hFontSmall);
+
+    // Afficher les thèmes disponibles
+    for (int i = 0; i < g_themeCount; i++) {
+        RECT themeRect = {16, y, width - 16, y + 28};
+
+        // Fond du bouton thème
+        HBRUSH themeBrush;
+        if (i == g_selectedTheme) {
+            themeBrush = CreateSolidBrush(g_themes[i].accent);
+            SetTextColor(hdc, RGB(0, 0, 0));
+        } else {
+            themeBrush = CreateSolidBrush(g_themes[i].panel);
+            SetTextColor(hdc, g_themes[i].text);
+        }
+        FillRect(hdc, &themeRect, themeBrush);
+        DeleteObject(themeBrush);
+
+        // Bordure
+        HPEN borderPen = CreatePen(PS_SOLID, 1, g_themes[i].accent);
+        SelectObject(hdc, borderPen);
+        MoveToEx(hdc, themeRect.left, themeRect.top, NULL);
+        LineTo(hdc, themeRect.right, themeRect.top);
+        LineTo(hdc, themeRect.right, themeRect.bottom);
+        LineTo(hdc, themeRect.left, themeRect.bottom);
+        LineTo(hdc, themeRect.left, themeRect.top);
+        DeleteObject(borderPen);
+
+        // Aperçu couleur
+        RECT previewRect = {20, y + 4, 40, y + 24};
+        HBRUSH previewBrush = CreateSolidBrush(g_themes[i].bg);
+        FillRect(hdc, &previewRect, previewBrush);
+        DeleteObject(previewBrush);
+
+        // Nom du thème
+        SetBkMode(hdc, TRANSPARENT);
+        RECT textRect = {50, y, width - 20, y + 28};
+        DrawText(hdc, g_themes[i].name, -1, &textRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+        // Indicateur sélectionné
+        if (i == g_selectedTheme) {
+            SetTextColor(hdc, RGB(0, 0, 0));
+            TextOut(hdc, width - 40, y + 6, "[OK]", 4);
+        }
+
+        y += 32;
+    }
+
+    // Instructions
+    y += 10;
+    SetTextColor(hdc, g_colorTextMuted);
+    TextOut(hdc, 16, y, "Cliquez sur un theme pour l'appliquer", 37);
 }
 
 /*
@@ -346,13 +473,115 @@ void UpdateDisplay() {
 }
 
 /*
+ * CreateTrayIcon
+ * Crée l'icône dans le system tray
+ */
+static void CreateTrayIcon(HWND hwnd, HINSTANCE hInstance) {
+    g_nid.cbSize = sizeof(NOTIFYICONDATA);
+    g_nid.hWnd = hwnd;
+    g_nid.uID = 1;
+    g_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    g_nid.uCallbackMessage = WM_TRAYICON;
+    g_nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(1));
+    if (!g_nid.hIcon) {
+        g_nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    }
+    strcpy(g_nid.szTip, "Performance Overlay v2");
+
+    Shell_NotifyIcon(NIM_ADD, &g_nid);
+    g_trayIconAdded = TRUE;
+}
+
+/*
+ * RemoveTrayIcon
+ * Supprime l'icône du system tray
+ */
+static void RemoveTrayIcon(void) {
+    if (g_trayIconAdded) {
+        Shell_NotifyIcon(NIM_DELETE, &g_nid);
+        g_trayIconAdded = FALSE;
+    }
+}
+
+/*
+ * ShowTrayMenu
+ * Affiche le menu contextuel du system tray
+ */
+static void ShowTrayMenu(HWND hwnd) {
+    POINT pt;
+    GetCursorPos(&pt);
+
+    HMENU hMenu = CreatePopupMenu();
+
+    // Options du menu
+    if (IsWindowVisible(hwnd)) {
+        AppendMenu(hMenu, MF_STRING, ID_TRAY_SHOW, "Masquer");
+    } else {
+        AppendMenu(hMenu, MF_STRING, ID_TRAY_SHOW, "Afficher");
+    }
+    AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+    AppendMenu(hMenu, MF_STRING, ID_TRAY_SETTINGS, "Paramètres...");
+    AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+    AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, "Quitter");
+
+    // Nécessaire pour que le menu se ferme correctement
+    SetForegroundWindow(hwnd);
+
+    TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, NULL);
+
+    DestroyMenu(hMenu);
+}
+
+/*
  * WindowProc
  * Fonction de traitement des messages de la fenetre
  */
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
-        case WM_CREATE:
+        case WM_CREATE: {
             SetTimer(hwnd, TIMER_ID, TIMER_INTERVAL, NULL);
+            // Créer l'icône system tray
+            HINSTANCE hInst = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
+            CreateTrayIcon(hwnd, hInst);
+            return 0;
+        }
+
+        case WM_TRAYICON:
+            // Gestion des clics sur l'icône du tray
+            if (lParam == WM_RBUTTONUP) {
+                ShowTrayMenu(hwnd);
+            } else if (lParam == WM_LBUTTONDBLCLK) {
+                // Double-clic gauche : afficher/masquer
+                ShowWindow(hwnd, IsWindowVisible(hwnd) ? SW_HIDE : SW_SHOW);
+                if (IsWindowVisible(hwnd)) {
+                    SetForegroundWindow(hwnd);
+                }
+            }
+            return 0;
+
+        case WM_COMMAND:
+            // Gestion des commandes du menu tray
+            switch (LOWORD(wParam)) {
+                case ID_TRAY_SHOW:
+                    ShowWindow(hwnd, IsWindowVisible(hwnd) ? SW_HIDE : SW_SHOW);
+                    if (IsWindowVisible(hwnd)) {
+                        SetForegroundWindow(hwnd);
+                    }
+                    break;
+                case ID_TRAY_SETTINGS:
+                    // Ouvrir la page Settings
+                    g_currentPage = PAGE_SETTINGS;
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, WINDOW_WIDTH,
+                                GetWindowHeightForMode(g_config.minimal_mode),
+                                SWP_NOMOVE | SWP_NOZORDER);
+                    ShowWindow(hwnd, SW_SHOW);
+                    SetForegroundWindow(hwnd);
+                    UpdateDisplay();
+                    break;
+                case ID_TRAY_EXIT:
+                    DestroyWindow(hwnd);
+                    break;
+            }
             return 0;
 
         case WM_TIMER:
@@ -371,17 +600,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             int height = clientRect.bottom;
 
             // Fond
-            HBRUSH bgBrush = CreateSolidBrush(COLOR_BG);
+            HBRUSH bgBrush = CreateSolidBrush(g_colorBg);
             FillRect(hdc, &clientRect, bgBrush);
             DeleteObject(bgBrush);
 
             RECT panelRect = {6, 8, width - 6, height - 6};
-            HBRUSH panelBrush = CreateSolidBrush(COLOR_PANEL);
+            HBRUSH panelBrush = CreateSolidBrush(g_colorPanel);
             FillRect(hdc, &panelRect, panelBrush);
             DeleteObject(panelBrush);
 
             // Bordure
-            HPEN borderPen = CreatePen(PS_SOLID, 1, COLOR_BORDER);
+            HPEN borderPen = CreatePen(PS_SOLID, 1, g_colorBorder);
             SelectObject(hdc, borderPen);
             MoveToEx(hdc, panelRect.left, panelRect.top, NULL);
             LineTo(hdc, panelRect.right, panelRect.top);
@@ -391,14 +620,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             DeleteObject(borderPen);
 
             // Accent haut
-            HBRUSH accent = CreateSolidBrush(COLOR_MAGENTA);
+            HBRUSH accent = CreateSolidBrush(g_colorAccent2);
             RECT accentRect = {panelRect.left, panelRect.top, panelRect.right, panelRect.top + 4};
             FillRect(hdc, &accentRect, accent);
             DeleteObject(accent);
 
             // Bouton X (zone clickable deja geree)
             RECT closeRect = {width - 28, 10, width - 6, 28};
-            HBRUSH closeBrush = CreateSolidBrush(COLOR_MAGENTA);
+            HBRUSH closeBrush = CreateSolidBrush(g_colorAccent2);
             FillRect(hdc, &closeRect, closeBrush);
             DeleteObject(closeBrush);
 
@@ -427,17 +656,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (g_currentPage == PAGE_TASKS) {
                 // Page Task Killer
                 DrawTaskKillerPage(hdc, width, height, hFontNormal, hFontSmall);
+            } else if (g_currentPage == PAGE_SETTINGS) {
+                // Page Settings/Skins
+                DrawSettingsPage(hdc, width, height, hFontNormal, hFontSmall);
             } else {
                 // Page Performance (par defaut)
                 int y = 50;  // Apres les onglets
 
                 // Logo ASCII
                 SelectObject(hdc, hFontTitle);
-                SetTextColor(hdc, COLOR_CYAN);
+                SetTextColor(hdc, g_colorAccent);
                 TextOut(hdc, 16, y, g_bannerTop, (int)strlen(g_bannerTop));
                 y += 18;
                 SelectObject(hdc, hFontNormal);
-                SetTextColor(hdc, COLOR_MAGENTA);
+                SetTextColor(hdc, g_colorAccent2);
                 TextOut(hdc, 16, y, g_bannerBottom, (int)strlen(g_bannerBottom));
                 y += 16;
 
@@ -449,8 +681,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     y += 12;
                 }
 
+                // Afficher Prayer juste après Uptime
+                MetricData* prayer = GetMetricByName("Prayer");
+                if (prayer && prayer->enabled && g_config.prayer_enabled) {
+                    SetTextColor(hdc, prayer->color);
+                    TextOut(hdc, 16, y, prayer->display_lines[0], (int)strlen(prayer->display_lines[0]));
+                    y += 14;
+                }
+
                 // Separation
-                HPEN sepPen = CreatePen(PS_SOLID, 1, COLOR_MAGENTA);
+                HPEN sepPen = CreatePen(PS_SOLID, 1, g_colorAccent2);
                 SelectObject(hdc, sepPen);
                 MoveToEx(hdc, 14, y + 6, NULL);
                 LineTo(hdc, width - 14, y + 6);
@@ -485,7 +725,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
                 // Footer
                 SelectObject(hdc, hFontSmall);
-                SetTextColor(hdc, COLOR_TEXT_MUTED);
+                SetTextColor(hdc, g_colorTextMuted);
                 const char* footer = "F2 minimal | F4 tasks";
                 TextOut(hdc, 16, height - 26, footer, (int)strlen(footer));
             }
@@ -515,7 +755,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             int tabX = 16;
             int tabY = 12;
             for (int i = 0; i < PAGE_COUNT; i++) {
-                if (i == PAGE_PRAYER) continue;  // Prayer pas encore implemente
                 if (pt.x >= tabX && pt.x <= tabX + TAB_WIDTH &&
                     pt.y >= tabY && pt.y <= tabY + TAB_HEIGHT) {
                     if (g_currentPage != i) {
@@ -641,6 +880,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 }
             }
 
+            // Clics spécifiques à la page Settings
+            if (g_currentPage == PAGE_SETTINGS) {
+                int y = 80;  // Position de départ des thèmes
+                for (int i = 0; i < g_themeCount; i++) {
+                    if (pt.x >= 16 && pt.x <= width - 16 &&
+                        pt.y >= y && pt.y <= y + 28) {
+                        // Sélectionner et appliquer ce thème
+                        ApplyTheme(i);
+                        g_config.theme_index = i;
+                        SaveConfigINI(&g_config, CONFIG_FILE_INI);
+                        UpdateDisplay();
+                        return 0;
+                    }
+                    y += 32;
+                }
+            }
+
             // Drag de la fenetre
             g_isDragging = TRUE;
             g_dragOffset.x = pt.x;
@@ -758,6 +1014,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             return 0;
 
         case WM_DESTROY:
+            RemoveTrayIcon();       // Supprimer l'icône du tray
             KillTimer(hwnd, TIMER_ID);
             CleanupTaskKiller();    // Nettoyer le Task Killer
             CleanupPluginSystem();  // Nettoyer les plugins (v3.0)
@@ -829,6 +1086,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Charger la configuration INI (v3.0)
     LoadConfigINI(&g_config, CONFIG_FILE_INI);
 
+    // Appliquer le thème depuis la config
+    ApplyTheme(g_config.theme_index);
+
     // Initialiser le système de plugins
     InitPluginSystem();
     RegisterMetricPlugin(&CPUPlugin);
@@ -840,6 +1100,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     RegisterMetricPlugin(&DateTimePlugin);
     RegisterMetricPlugin(&VolumePlugin);
     RegisterMetricPlugin(&GPUPlugin);
+    RegisterMetricPlugin(&PrayerPlugin);
+
+    // Configurer les horaires de prière depuis la config (avec API)
+    SetPrayerConfig(g_config.prayer_city, g_config.prayer_country,
+                    g_config.prayer_method, g_config.prayer_use_api,
+                    g_config.prayer_enabled,
+                    g_config.prayer_fajr, g_config.prayer_dhuhr,
+                    g_config.prayer_asr, g_config.prayer_maghrib,
+                    g_config.prayer_isha);
 
     // Activer/désactiver plugins selon config
     EnablePlugin("CPU", g_config.cpu_enabled);
@@ -847,6 +1116,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     EnablePlugin("Disk", g_config.disk_enabled);
     EnablePlugin("Uptime", g_config.uptime_enabled);
     EnablePlugin("Process", g_config.process_enabled);
+    EnablePlugin("Prayer", g_config.prayer_enabled);
     // Nouveaux plugins - activés par défaut
     EnablePlugin("Network", TRUE);
     EnablePlugin("DateTime", TRUE);

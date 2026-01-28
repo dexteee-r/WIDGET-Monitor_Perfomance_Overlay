@@ -18,5 +18,16 @@ extern MetricPlugin NetworkPlugin;
 extern MetricPlugin DateTimePlugin;
 extern MetricPlugin VolumePlugin;
 extern MetricPlugin GPUPlugin;
+extern MetricPlugin PrayerPlugin;
+
+// Configuration des prieres (ancienne fonction pour compatibilite)
+void SetPrayerTimes(const char* fajr, const char* dhuhr, const char* asr,
+                    const char* maghrib, const char* isha, BOOL enabled);
+
+// Configuration complete des prieres avec API
+void SetPrayerConfig(const char* city, const char* country, int method,
+                     BOOL useApi, BOOL enabled,
+                     const char* fajr, const char* dhuhr, const char* asr,
+                     const char* maghrib, const char* isha);
 
 #endif // ALL_PLUGINS_H
