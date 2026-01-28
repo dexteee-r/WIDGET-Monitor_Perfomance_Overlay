@@ -64,5 +64,8 @@ Performance-Overlay-*/
 *.bak
 *.backup
 
-# Guide de workflow de release (documentation interne)
-RELEASE_WORKFLOW.md
+# Dossiers temporaires
+temp_check/
+
+# Fichier nul Windows
+nul

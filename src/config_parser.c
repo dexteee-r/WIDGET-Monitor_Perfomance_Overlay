@@ -143,8 +143,8 @@ void SetDefaultConfigINI(ConfigINI* config) {
     // [Prayer]
     config->prayer_enabled = TRUE;
     config->prayer_use_api = TRUE;
-    strcpy(config->prayer_city, "Paris");
-    strcpy(config->prayer_country, "France");
+    strcpy(config->prayer_city, "Brussels");
+    strcpy(config->prayer_country, "Belgium");
     config->prayer_method = 2;  // ISNA (Islamic Society of North America)
     // Horaires manuels par défaut (fallback)
     strcpy(config->prayer_fajr, "06:00");
