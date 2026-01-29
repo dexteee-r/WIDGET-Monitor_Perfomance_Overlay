@@ -16,6 +16,7 @@ RES_DIR = resources
 # Fichiers source
 SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/performance.c $(SRC_DIR)/config.c $(SRC_DIR)/startup.c \
           $(SRC_DIR)/metric_plugin.c $(SRC_DIR)/config_parser.c $(SRC_DIR)/taskkiller.c \
+          $(SRC_DIR)/theme.c $(SRC_DIR)/tray.c $(SRC_DIR)/ui_draw.c \
           $(PLUGIN_DIR)/plugin_cpu.c $(PLUGIN_DIR)/plugin_ram.c $(PLUGIN_DIR)/plugin_disk.c \
           $(PLUGIN_DIR)/plugin_uptime.c $(PLUGIN_DIR)/plugin_process.c \
           $(PLUGIN_DIR)/plugin_network.c $(PLUGIN_DIR)/plugin_datetime.c \
@@ -23,6 +24,7 @@ SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/performance.c $(SRC_DIR)/config.c $(SRC_D
 
 OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/performance.o $(BUILD_DIR)/config.o $(BUILD_DIR)/startup.o \
           $(BUILD_DIR)/metric_plugin.o $(BUILD_DIR)/config_parser.o $(BUILD_DIR)/taskkiller.o \
+          $(BUILD_DIR)/theme.o $(BUILD_DIR)/tray.o $(BUILD_DIR)/ui_draw.o \
           $(BUILD_DIR)/plugin_cpu.o $(BUILD_DIR)/plugin_ram.o $(BUILD_DIR)/plugin_disk.o \
           $(BUILD_DIR)/plugin_uptime.o $(BUILD_DIR)/plugin_process.o \
           $(BUILD_DIR)/plugin_network.o $(BUILD_DIR)/plugin_datetime.o \
@@ -70,6 +72,18 @@ $(BUILD_DIR)/config_parser.o: $(SRC_DIR)/config_parser.c
 
 # Compilation de taskkiller.c
 $(BUILD_DIR)/taskkiller.o: $(SRC_DIR)/taskkiller.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+# Compilation de theme.c
+$(BUILD_DIR)/theme.o: $(SRC_DIR)/theme.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+# Compilation de tray.c
+$(BUILD_DIR)/tray.o: $(SRC_DIR)/tray.c
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+# Compilation de ui_draw.c
+$(BUILD_DIR)/ui_draw.o: $(SRC_DIR)/ui_draw.c
 	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
 
 # Compilation des plugins
