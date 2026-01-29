@@ -3,8 +3,8 @@
 
 #include <windows.h>
 
-// Icône de l'application
-IDI_ICON1 ICON "icon.ico"
+// Icône de l'application (ID numérique 1 pour LoadIcon)
+1 ICON "icon.ico"
 
 // Informations de version
 VS_VERSION_INFO VERSIONINFO
