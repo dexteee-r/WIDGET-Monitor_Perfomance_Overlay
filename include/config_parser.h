@@ -28,6 +28,11 @@ typedef struct {
     BOOL show_processes;
     BOOL show_frequency;
 
+    // [Animations]
+    BOOL animations_enabled;
+    int alert_cpu_threshold;   // Seuil alerte CPU (défaut: 80)
+    int alert_ram_threshold;   // Seuil alerte RAM (défaut: 90)
+
     // [Performance]
     int refresh_interval_ms;
     int max_disks;
@@ -45,7 +50,17 @@ typedef struct {
     BOOL process_enabled;
 
     // [Theme]
-    int theme_index;  // Index du thème sélectionné (0-4)
+    int theme_index;  // Index du thème sélectionné (0-5, 5=Custom)
+
+    // [CustomTheme] - Couleurs personnalisées (format R,G,B)
+    BOOL custom_theme_enabled;
+    COLORREF custom_bg;
+    COLORREF custom_panel;
+    COLORREF custom_border;
+    COLORREF custom_accent;
+    COLORREF custom_accent2;
+    COLORREF custom_text;
+    COLORREF custom_text_muted;
 
     // [Prayer]
     BOOL prayer_enabled;

@@ -16,5 +16,6 @@ extern const char* g_pageNames[];
 void DrawTabs(HDC hdc, int width, HFONT hFontSmall);
 void DrawSettingsPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT hFontSmall);
 void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT hFontSmall);
+void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont);
 
 #endif // UI_DRAW_H

@@ -36,6 +36,9 @@ extern int g_selectedTheme;
 
 // Fonctions
 void ApplyTheme(int themeIndex);
+void SetCustomTheme(COLORREF bg, COLORREF panel, COLORREF border,
+                    COLORREF accent, COLORREF accent2,
+                    COLORREF text, COLORREF textMuted);
 int GetThemeCount(void);
 const char* GetThemeName(int index);
 ThemeSkin* GetTheme(int index);

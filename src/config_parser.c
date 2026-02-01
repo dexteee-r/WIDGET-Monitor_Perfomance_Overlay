@@ -78,6 +78,20 @@ int ParseVirtualKey(const char* keyName) {
 }
 
 /*
+ * ParseRGB
+ * Convertit une chaîne "R,G,B" en COLORREF
+ */
+static COLORREF ParseRGB(const char* value) {
+    int r = 0, g = 0, b = 0;
+    sscanf(value, "%d,%d,%d", &r, &g, &b);
+    // Clamp values
+    if (r < 0) r = 0; if (r > 255) r = 255;
+    if (g < 0) g = 0; if (g > 255) g = 255;
+    if (b < 0) b = 0; if (b > 255) b = 255;
+    return RGB(r, g, b);
+}
+
+/*
  * VirtualKeyToString
  * Convertit un code VK en nom de touche
  */
@@ -121,6 +135,11 @@ void SetDefaultConfigINI(ConfigINI* config) {
     config->show_processes = TRUE;
     config->show_frequency = TRUE;
 
+    // [Animations]
+    config->animations_enabled = TRUE;
+    config->alert_cpu_threshold = 80;
+    config->alert_ram_threshold = 90;
+
     // [Performance]
     config->refresh_interval_ms = TIMER_INTERVAL;
     config->max_disks = MAX_DISKS;
@@ -139,6 +158,16 @@ void SetDefaultConfigINI(ConfigINI* config) {
 
     // [Theme]
     config->theme_index = 0;  // Neon Dark par défaut
+
+    // [CustomTheme] - Valeurs par défaut (style violet/rose)
+    config->custom_theme_enabled = FALSE;
+    config->custom_bg = RGB(20, 10, 30);
+    config->custom_panel = RGB(30, 20, 45);
+    config->custom_border = RGB(60, 40, 80);
+    config->custom_accent = RGB(200, 100, 255);
+    config->custom_accent2 = RGB(255, 100, 150);
+    config->custom_text = RGB(230, 220, 255);
+    config->custom_text_muted = RGB(140, 120, 160);
 
     // [Prayer]
     config->prayer_enabled = TRUE;
@@ -229,6 +258,11 @@ void LoadConfigINI(ConfigINI* config, const char* filename) {
             else if (strcmp(key, "show_processes") == 0) config->show_processes = ParseBool(value);
             else if (strcmp(key, "show_frequency") == 0) config->show_frequency = ParseBool(value);
         }
+        else if (strcmp(section, "Animations") == 0) {
+            if (strcmp(key, "enabled") == 0) config->animations_enabled = ParseBool(value);
+            else if (strcmp(key, "alert_cpu_threshold") == 0) config->alert_cpu_threshold = atoi(value);
+            else if (strcmp(key, "alert_ram_threshold") == 0) config->alert_ram_threshold = atoi(value);
+        }
         else if (strcmp(section, "Performance") == 0) {
             if (strcmp(key, "refresh_interval_ms") == 0) config->refresh_interval_ms = atoi(value);
             else if (strcmp(key, "max_disks") == 0) config->max_disks = atoi(value);
@@ -248,10 +282,20 @@ void LoadConfigINI(ConfigINI* config, const char* filename) {
         else if (strcmp(section, "Theme") == 0) {
             if (strcmp(key, "index") == 0) {
                 config->theme_index = atoi(value);
-                if (config->theme_index < 0 || config->theme_index > 4) {
+                if (config->theme_index < 0 || config->theme_index > 5) {
                     config->theme_index = 0;
                 }
             }
+        }
+        else if (strcmp(section, "CustomTheme") == 0) {
+            if (strcmp(key, "enabled") == 0) config->custom_theme_enabled = ParseBool(value);
+            else if (strcmp(key, "bg") == 0) config->custom_bg = ParseRGB(value);
+            else if (strcmp(key, "panel") == 0) config->custom_panel = ParseRGB(value);
+            else if (strcmp(key, "border") == 0) config->custom_border = ParseRGB(value);
+            else if (strcmp(key, "accent") == 0) config->custom_accent = ParseRGB(value);
+            else if (strcmp(key, "accent2") == 0) config->custom_accent2 = ParseRGB(value);
+            else if (strcmp(key, "text") == 0) config->custom_text = ParseRGB(value);
+            else if (strcmp(key, "text_muted") == 0) config->custom_text_muted = ParseRGB(value);
         }
         else if (strcmp(section, "Prayer") == 0) {
             if (strcmp(key, "enabled") == 0) config->prayer_enabled = ParseBool(value);
@@ -324,6 +368,13 @@ void SaveConfigINI(const ConfigINI* config, const char* filename) {
     fprintf(file, "show_processes = %s\n", config->show_processes ? "true" : "false");
     fprintf(file, "show_frequency = %s\n\n", config->show_frequency ? "true" : "false");
 
+    fprintf(file, "[Animations]\n");
+    fprintf(file, "; Activer/désactiver les animations\n");
+    fprintf(file, "enabled = %s\n", config->animations_enabled ? "true" : "false");
+    fprintf(file, "; Seuils d'alerte (pulsation quand dépassé)\n");
+    fprintf(file, "alert_cpu_threshold = %d\n", config->alert_cpu_threshold);
+    fprintf(file, "alert_ram_threshold = %d\n\n", config->alert_ram_threshold);
+
     fprintf(file, "[Performance]\n");
     fprintf(file, "refresh_interval_ms = %d\n", config->refresh_interval_ms);
     fprintf(file, "max_disks = %d\n\n", config->max_disks);
@@ -342,8 +393,20 @@ void SaveConfigINI(const ConfigINI* config, const char* filename) {
     fprintf(file, "process_enabled = %s\n\n", config->process_enabled ? "true" : "false");
 
     fprintf(file, "[Theme]\n");
-    fprintf(file, "; Index du thème (0=Neon Dark, 1=Cyberpunk, 2=Matrix, 3=Ocean, 4=Sunset)\n");
+    fprintf(file, "; Index du thème (0=Neon Dark, 1=Cyberpunk, 2=Matrix, 3=Ocean, 4=Sunset, 5=Custom)\n");
     fprintf(file, "index = %d\n\n", config->theme_index);
+
+    fprintf(file, "[CustomTheme]\n");
+    fprintf(file, "; Thème personnalisé (activer avec index = 5)\n");
+    fprintf(file, "; Format des couleurs: R,G,B (0-255)\n");
+    fprintf(file, "enabled = %s\n", config->custom_theme_enabled ? "true" : "false");
+    fprintf(file, "bg = %d,%d,%d\n", GetRValue(config->custom_bg), GetGValue(config->custom_bg), GetBValue(config->custom_bg));
+    fprintf(file, "panel = %d,%d,%d\n", GetRValue(config->custom_panel), GetGValue(config->custom_panel), GetBValue(config->custom_panel));
+    fprintf(file, "border = %d,%d,%d\n", GetRValue(config->custom_border), GetGValue(config->custom_border), GetBValue(config->custom_border));
+    fprintf(file, "accent = %d,%d,%d\n", GetRValue(config->custom_accent), GetGValue(config->custom_accent), GetBValue(config->custom_accent));
+    fprintf(file, "accent2 = %d,%d,%d\n", GetRValue(config->custom_accent2), GetGValue(config->custom_accent2), GetBValue(config->custom_accent2));
+    fprintf(file, "text = %d,%d,%d\n", GetRValue(config->custom_text), GetGValue(config->custom_text), GetBValue(config->custom_text));
+    fprintf(file, "text_muted = %d,%d,%d\n\n", GetRValue(config->custom_text_muted), GetGValue(config->custom_text_muted), GetBValue(config->custom_text_muted));
 
     fprintf(file, "[Prayer]\n");
     fprintf(file, "; Configuration des horaires de prière\n");

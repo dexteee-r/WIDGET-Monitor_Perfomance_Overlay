@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "../include/performance.h"
 #include "../include/config_parser.h"
 #include "../include/startup.h"
@@ -31,6 +32,19 @@ char g_bannerBottom[64] = ":: PLUGIN SYSTEM ::";
 int g_currentPage = PAGE_PERF;
 const char* g_pageNames[] = {"Perf", "Tasks", "Settings"};
 
+// Animation fade-in
+#define TIMER_ANIM 2
+#define TIMER_ANIM_INTERVAL 30  // ~33 FPS
+static BYTE g_currentAlpha = 0;
+static BYTE g_targetAlpha = WINDOW_OPACITY;
+static BOOL g_animating = FALSE;
+
+// Animation hover et pulse
+int g_hoverTabIndex = -1;      // Onglet survolé (-1 = aucun)
+int g_hoverThemeIndex = -1;    // Thème survolé (-1 = aucun)
+static float g_pulsePhase = 0; // Phase du pulse (0 à 2*PI)
+BOOL g_alertPulse = FALSE;     // TRUE si CPU ou RAM en alerte
+
 static int GetWindowHeightForMode(BOOL minimal) {
     if (g_currentPage == PAGE_TASKS) {
         return WINDOW_HEIGHT_TASKS;
@@ -38,7 +52,14 @@ static int GetWindowHeightForMode(BOOL minimal) {
     if (g_currentPage == PAGE_SETTINGS) {
         return WINDOW_HEIGHT_SETTINGS;
     }
-    return minimal ? WINDOW_HEIGHT_MIN : WINDOW_HEIGHT_FULL;
+    return minimal ? WINDOW_HEIGHT_COMPACT : WINDOW_HEIGHT_FULL;
+}
+
+static int GetWindowWidthForMode(BOOL minimal) {
+    if (g_currentPage != PAGE_PERF) {
+        return WINDOW_WIDTH;
+    }
+    return minimal ? WINDOW_WIDTH_COMPACT : WINDOW_WIDTH;
 }
 
 /*
@@ -73,8 +94,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     switch (uMsg) {
         case WM_CREATE: {
             SetTimer(hwnd, TIMER_ID, TIMER_INTERVAL, NULL);
+            SetTimer(hwnd, TIMER_ANIM, TIMER_ANIM_INTERVAL, NULL);
             HINSTANCE hInst = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
             CreateTrayIcon(hwnd, hInst);
+            // Démarrer avec fade-in
+            g_currentAlpha = 0;
+            g_targetAlpha = WINDOW_OPACITY;
+            g_animating = TRUE;
+            SetLayeredWindowAttributes(hwnd, 0, g_currentAlpha, LWA_ALPHA);
             return 0;
         }
 
@@ -99,7 +126,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     break;
                 case ID_TRAY_SETTINGS:
                     g_currentPage = PAGE_SETTINGS;
-                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, WINDOW_WIDTH,
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0,
+                                GetWindowWidthForMode(g_config.minimal_mode),
                                 GetWindowHeightForMode(g_config.minimal_mode),
                                 SWP_NOMOVE | SWP_NOZORDER);
                     ShowWindow(hwnd, SW_SHOW);
@@ -113,8 +141,48 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             return 0;
 
         case WM_TIMER:
-            UpdateAllPlugins();
-            UpdateDisplay();
+            if (wParam == TIMER_ID) {
+                // Timer principal: mise à jour des métriques
+                UpdateAllPlugins();
+                UpdateDisplay();
+            } else if (wParam == TIMER_ANIM) {
+                // Timer animation: fade
+                if (g_animating) {
+                    if (g_currentAlpha < g_targetAlpha) {
+                        g_currentAlpha += 15;
+                        if (g_currentAlpha >= g_targetAlpha) {
+                            g_currentAlpha = g_targetAlpha;
+                            g_animating = FALSE;
+                        }
+                    } else if (g_currentAlpha > g_targetAlpha) {
+                        if (g_currentAlpha > 15) g_currentAlpha -= 15;
+                        else g_currentAlpha = 0;
+                        if (g_currentAlpha <= g_targetAlpha) {
+                            g_currentAlpha = g_targetAlpha;
+                            g_animating = FALSE;
+                        }
+                    }
+                    SetLayeredWindowAttributes(hwnd, 0, g_currentAlpha, LWA_ALPHA);
+                }
+                // Pulse animation pour alertes
+                if (g_config.animations_enabled) {
+                    g_pulsePhase += 0.15f;
+                    if (g_pulsePhase > 6.28318f) g_pulsePhase -= 6.28318f;
+                    // Vérifier si CPU/RAM en alerte
+                    MetricData* cpu = GetMetricByName("CPU");
+                    MetricData* ram = GetMetricByName("RAM");
+                    float cpuPct = 0, ramPct = 0;
+                    if (cpu && cpu->enabled) sscanf(cpu->display_lines[0], "CPU %f", &cpuPct);
+                    if (ram && ram->enabled) {
+                        float used = 0, total = 0;
+                        sscanf(ram->display_lines[0], "RAM %f/%f", &used, &total);
+                        if (total > 0) ramPct = (used / total) * 100.0f;
+                    }
+                    BOOL wasAlert = g_alertPulse;
+                    g_alertPulse = (cpuPct >= g_config.alert_cpu_threshold) || (ramPct >= g_config.alert_ram_threshold);
+                    if (g_alertPulse || wasAlert) UpdateDisplay();
+                }
+            }
             return 0;
 
         case WM_PAINT: {
@@ -131,33 +199,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             FillRect(hdc, &clientRect, bgBrush);
             DeleteObject(bgBrush);
 
-            RECT panelRect = {6, 8, width - 6, height - 6};
-            HBRUSH panelBrush = CreateSolidBrush(g_colorPanel);
-            FillRect(hdc, &panelRect, panelBrush);
-            DeleteObject(panelBrush);
-
-            // Bordure
-            HPEN borderPen = CreatePen(PS_SOLID, 1, g_colorBorder);
-            SelectObject(hdc, borderPen);
-            MoveToEx(hdc, panelRect.left, panelRect.top, NULL);
-            LineTo(hdc, panelRect.right, panelRect.top);
-            LineTo(hdc, panelRect.right, panelRect.bottom);
-            LineTo(hdc, panelRect.left, panelRect.bottom);
-            LineTo(hdc, panelRect.left, panelRect.top);
-            DeleteObject(borderPen);
-
-            // Accent haut
-            HBRUSH accent = CreateSolidBrush(g_colorAccent2);
-            RECT accentRect = {panelRect.left, panelRect.top, panelRect.right, panelRect.top + 4};
-            FillRect(hdc, &accentRect, accent);
-            DeleteObject(accent);
-
-            // Bouton X
-            RECT closeRect = {width - 28, 10, width - 6, 28};
-            HBRUSH closeBrush = CreateSolidBrush(g_colorAccent2);
-            FillRect(hdc, &closeRect, closeBrush);
-            DeleteObject(closeBrush);
-
             // Polices
             HFONT hFontTitle = CreateFont(FONT_TITLE_SIZE, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
                 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
@@ -170,6 +211,74 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_MODERN, FONT_SMALL_NAME);
 
             SetBkMode(hdc, TRANSPARENT);
+
+            // Mode compact: interface minimaliste
+            if (g_config.minimal_mode && g_currentPage == PAGE_PERF) {
+                // Bordure simple
+                HPEN borderPen = CreatePen(PS_SOLID, 2, g_colorAccent);
+                SelectObject(hdc, borderPen);
+                MoveToEx(hdc, 0, 0, NULL);
+                LineTo(hdc, width, 0);
+                LineTo(hdc, width, height);
+                LineTo(hdc, 0, height);
+                LineTo(hdc, 0, 0);
+                DeleteObject(borderPen);
+
+                DrawCompactMode(hdc, width, height, hFontNormal);
+
+                DeleteObject(hFontTitle);
+                DeleteObject(hFontNormal);
+                DeleteObject(hFontSmall);
+                EndPaint(hwnd, &ps);
+                return 0;
+            }
+
+            // Mode normal: panneau complet
+            RECT panelRect = {6, 8, width - 6, height - 6};
+            HBRUSH panelBrush = CreateSolidBrush(g_colorPanel);
+            FillRect(hdc, &panelRect, panelBrush);
+            DeleteObject(panelBrush);
+
+            // Bordure (pulse rouge si alerte)
+            COLORREF borderColor = g_colorBorder;
+            int borderWidth = 1;
+            if (g_alertPulse && g_config.animations_enabled) {
+                // Pulse entre rouge et couleur normale
+                float pulse = (float)(sin(g_pulsePhase) * 0.5 + 0.5); // 0 à 1
+                int r = (int)(255 * pulse + GetRValue(g_colorBorder) * (1 - pulse));
+                int g = (int)(50 * pulse + GetGValue(g_colorBorder) * (1 - pulse));
+                int b = (int)(50 * pulse + GetBValue(g_colorBorder) * (1 - pulse));
+                borderColor = RGB(r, g, b);
+                borderWidth = 2;
+            }
+            HPEN borderPen = CreatePen(PS_SOLID, borderWidth, borderColor);
+            SelectObject(hdc, borderPen);
+            MoveToEx(hdc, panelRect.left, panelRect.top, NULL);
+            LineTo(hdc, panelRect.right, panelRect.top);
+            LineTo(hdc, panelRect.right, panelRect.bottom);
+            LineTo(hdc, panelRect.left, panelRect.bottom);
+            LineTo(hdc, panelRect.left, panelRect.top);
+            DeleteObject(borderPen);
+
+            // Accent haut (pulse si alerte)
+            COLORREF accentColor = g_colorAccent2;
+            if (g_alertPulse && g_config.animations_enabled) {
+                float pulse = (float)(sin(g_pulsePhase) * 0.5 + 0.5);
+                int r = (int)(255 * pulse + GetRValue(g_colorAccent2) * (1 - pulse));
+                int g = (int)(100 * pulse + GetGValue(g_colorAccent2) * (1 - pulse));
+                int b = (int)(100 * pulse + GetBValue(g_colorAccent2) * (1 - pulse));
+                accentColor = RGB(r, g, b);
+            }
+            HBRUSH accent = CreateSolidBrush(accentColor);
+            RECT accentRect = {panelRect.left, panelRect.top, panelRect.right, panelRect.top + 4};
+            FillRect(hdc, &accentRect, accent);
+            DeleteObject(accent);
+
+            // Bouton X
+            RECT closeRect = {width - 28, 10, width - 6, 28};
+            HBRUSH closeBrush = CreateSolidBrush(g_colorAccent2);
+            FillRect(hdc, &closeRect, closeBrush);
+            DeleteObject(closeBrush);
 
             // Onglets
             DrawTabs(hdc, width, hFontSmall);
@@ -185,7 +294,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             } else if (g_currentPage == PAGE_SETTINGS) {
                 DrawSettingsPage(hdc, width, height, hFontNormal, hFontSmall);
             } else {
-                // Page Performance
+                // Page Performance normale
                 int y = 50;
 
                 // Logo ASCII
@@ -229,8 +338,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 for (int i = 0; i < pluginCount; i++) {
                     MetricData* metric = GetMetricByName(pluginOrder[i]);
                     if (metric && metric->enabled) {
-                        if (g_config.minimal_mode && strcmp(pluginOrder[i], "Disk") == 0) continue;
-                        if (g_config.minimal_mode && strcmp(pluginOrder[i], "Process") == 0) continue;
                         if (!g_config.show_processes && strcmp(pluginOrder[i], "Process") == 0) continue;
 
                         SetTextColor(hdc, metric->color);
@@ -245,7 +352,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 // Footer
                 SelectObject(hdc, hFontSmall);
                 SetTextColor(hdc, g_colorTextMuted);
-                TextOut(hdc, 16, height - 26, "F2 minimal | F4 tasks", 21);
+                TextOut(hdc, 16, height - 26, "F2 compact | F4 tasks", 21);
             }
 
             DeleteObject(hFontTitle);
@@ -276,7 +383,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     pt.y >= tabY && pt.y <= tabY + TAB_HEIGHT) {
                     if (g_currentPage != i) {
                         g_currentPage = i;
-                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, WINDOW_WIDTH,
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0,
+                                    GetWindowWidthForMode(g_config.minimal_mode),
                                     GetWindowHeightForMode(g_config.minimal_mode),
                                     SWP_NOMOVE | SWP_NOZORDER);
                         if (g_currentPage == PAGE_TASKS) {
@@ -384,6 +492,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 int y = 80;
                 for (int i = 0; i < g_themeCount; i++) {
                     if (pt.x >= 16 && pt.x <= width - 16 && pt.y >= y && pt.y <= y + 28) {
+                        if (i == 5) {
+                            // Custom theme: ouvrir config.ini pour editer les couleurs
+                            char configPath[MAX_PATH];
+                            GetModuleFileNameA(NULL, configPath, MAX_PATH);
+                            char* lastSlash = strrchr(configPath, '\\');
+                            if (lastSlash) {
+                                strcpy(lastSlash + 1, CONFIG_FILE_INI);
+                            }
+                            ShellExecuteA(NULL, "open", configPath, NULL, NULL, SW_SHOWNORMAL);
+                        }
                         ApplyTheme(i);
                         g_config.theme_index = i;
                         SaveConfigINI(&g_config, CONFIG_FILE_INI);
@@ -414,13 +532,45 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
             return 0;
 
-        case WM_MOUSEMOVE:
+        case WM_MOUSEMOVE: {
+            POINT pt = {LOWORD(lParam), HIWORD(lParam)};
             if (g_isDragging) {
-                POINT pt;
                 GetCursorPos(&pt);
                 SetWindowPos(hwnd, HWND_TOPMOST, pt.x - g_dragOffset.x, pt.y - g_dragOffset.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+            } else if (g_config.animations_enabled) {
+                // Hover tracking pour les onglets
+                int oldHoverTab = g_hoverTabIndex;
+                g_hoverTabIndex = -1;
+                int tabX = 16;
+                for (int i = 0; i < PAGE_COUNT; i++) {
+                    if (pt.x >= tabX && pt.x <= tabX + TAB_WIDTH &&
+                        pt.y >= 12 && pt.y <= 12 + TAB_HEIGHT) {
+                        g_hoverTabIndex = i;
+                        break;
+                    }
+                    tabX += TAB_WIDTH + TAB_MARGIN;
+                }
+                // Hover tracking pour les thèmes (page Settings)
+                int oldHoverTheme = g_hoverThemeIndex;
+                g_hoverThemeIndex = -1;
+                if (g_currentPage == PAGE_SETTINGS) {
+                    int y = 80;
+                    for (int i = 0; i < g_themeCount; i++) {
+                        if (pt.x >= 16 && pt.x <= WINDOW_WIDTH - 16 &&
+                            pt.y >= y && pt.y <= y + 28) {
+                            g_hoverThemeIndex = i;
+                            break;
+                        }
+                        y += 32;
+                    }
+                }
+                // Redraw si hover a changé
+                if (oldHoverTab != g_hoverTabIndex || oldHoverTheme != g_hoverThemeIndex) {
+                    UpdateDisplay();
+                }
             }
             return 0;
+        }
 
         case WM_MOUSEWHEEL: {
             if (g_currentPage == PAGE_TASKS) {
@@ -470,7 +620,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (wParam == g_config.toggle_minimal_key && g_currentPage == PAGE_PERF) {
                 g_config.minimal_mode = !g_config.minimal_mode;
                 SaveConfigINI(&g_config, CONFIG_FILE_INI);
-                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, WINDOW_WIDTH,
+                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0,
+                            GetWindowWidthForMode(g_config.minimal_mode),
                             GetWindowHeightForMode(g_config.minimal_mode), SWP_NOMOVE | SWP_NOZORDER);
                 UpdateDisplay();
             } else if (wParam == VK_F4) {
@@ -478,11 +629,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 if (g_currentPage == PAGE_TASKS) {
                     RefreshProcessList(GetTaskKillerData());
                 }
-                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, WINDOW_WIDTH,
+                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0,
+                            GetWindowWidthForMode(g_config.minimal_mode),
                             GetWindowHeightForMode(g_config.minimal_mode), SWP_NOMOVE | SWP_NOZORDER);
                 UpdateDisplay();
             } else if (wParam == g_config.reload_config_key) {
                 LoadConfigINI(&g_config, CONFIG_FILE_INI);
+                SetCustomTheme(g_config.custom_bg, g_config.custom_panel, g_config.custom_border,
+                               g_config.custom_accent, g_config.custom_accent2,
+                               g_config.custom_text, g_config.custom_text_muted);
+                ApplyTheme(g_config.theme_index);
                 UpdateDisplay();
             }
             return 0;
@@ -490,6 +646,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_DESTROY:
             RemoveTrayIcon();
             KillTimer(hwnd, TIMER_ID);
+            KillTimer(hwnd, TIMER_ANIM);
             CleanupTaskKiller();
             CleanupPluginSystem();
             CleanupPerformanceMonitoring();
@@ -546,6 +703,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     InitPerformanceMonitoring();
     LoadConfigINI(&g_config, CONFIG_FILE_INI);
+
+    // Charger le theme custom depuis la config
+    SetCustomTheme(g_config.custom_bg, g_config.custom_panel, g_config.custom_border,
+                   g_config.custom_accent, g_config.custom_accent2,
+                   g_config.custom_text, g_config.custom_text_muted);
     ApplyTheme(g_config.theme_index);
 
     // Plugins

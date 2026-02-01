@@ -6,16 +6,24 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "../include/ui_draw.h"
 #include "../include/theme.h"
 #include "../include/constants.h"
 #include "../include/taskkiller.h"
+#include "../include/metric_plugin.h"
+
+// Variables d'animation (définies dans main.c)
+extern int g_hoverTabIndex;
+extern int g_hoverThemeIndex;
+extern BOOL g_alertPulse;
 
 /*
  * DrawTabs
  * Dessine les onglets de navigation en haut du widget
  */
 void DrawTabs(HDC hdc, int width, HFONT hFontSmall) {
+    (void)width;
     int tabX = 16;
     int tabY = 12;
 
@@ -24,10 +32,14 @@ void DrawTabs(HDC hdc, int width, HFONT hFontSmall) {
     for (int i = 0; i < PAGE_COUNT; i++) {
         RECT tabRect = {tabX, tabY, tabX + TAB_WIDTH, tabY + TAB_HEIGHT};
 
-        // Fond de l'onglet
+        // Fond de l'onglet avec effet hover
         HBRUSH tabBrush;
         if (i == g_currentPage) {
             tabBrush = CreateSolidBrush(g_colorAccent2);
+            SetTextColor(hdc, RGB(0, 0, 0));
+        } else if (i == g_hoverTabIndex) {
+            // Effet hover: couleur intermédiaire
+            tabBrush = CreateSolidBrush(g_colorAccent);
             SetTextColor(hdc, RGB(0, 0, 0));
         } else {
             tabBrush = CreateSolidBrush(g_colorBorder);
@@ -62,11 +74,16 @@ void DrawSettingsPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT h
     for (int i = 0; i < g_themeCount; i++) {
         RECT themeRect = {16, y, width - 16, y + 28};
 
-        // Fond du bouton theme
+        // Fond du bouton theme avec effet hover
         HBRUSH themeBrush;
+        BOOL isHovered = (i == g_hoverThemeIndex);
         if (i == g_selectedTheme) {
             themeBrush = CreateSolidBrush(g_themes[i].accent);
             SetTextColor(hdc, RGB(0, 0, 0));
+        } else if (isHovered) {
+            // Hover: mélange panel + accent
+            themeBrush = CreateSolidBrush(g_themes[i].border);
+            SetTextColor(hdc, g_themes[i].text);
         } else {
             themeBrush = CreateSolidBrush(g_themes[i].panel);
             SetTextColor(hdc, g_themes[i].text);
@@ -74,8 +91,8 @@ void DrawSettingsPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT h
         FillRect(hdc, &themeRect, themeBrush);
         DeleteObject(themeBrush);
 
-        // Bordure
-        HPEN borderPen = CreatePen(PS_SOLID, 1, g_themes[i].accent);
+        // Bordure (plus épaisse si hover)
+        HPEN borderPen = CreatePen(PS_SOLID, isHovered ? 2 : 1, g_themes[i].accent);
         SelectObject(hdc, borderPen);
         MoveToEx(hdc, themeRect.left, themeRect.top, NULL);
         LineTo(hdc, themeRect.right, themeRect.top);
@@ -345,4 +362,56 @@ void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT
     }
     SetTextColor(hdc, COLOR_TEXT_MUTED);
     TextOut(hdc, 120, y + 5, countStr, (int)strlen(countStr));
+}
+
+/*
+ * DrawCompactMode
+ * Dessine l'interface en mode ultra-compact (CPU + RAM sur une ligne)
+ */
+void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
+    (void)width;  // Unused
+    SelectObject(hdc, hFont);
+    SetBkMode(hdc, TRANSPARENT);
+
+    MetricData* cpu = GetMetricByName("CPU");
+    MetricData* ram = GetMetricByName("RAM");
+
+    int x = 12;
+    int y = (height - 14) / 2;
+
+    // CPU - format: "CPU   XX.X%  X.XX GHz  ████"
+    if (cpu && cpu->enabled && cpu->line_count > 0) {
+        float cpuPct = 0;
+        sscanf(cpu->display_lines[0], "CPU %f", &cpuPct);
+
+        SetTextColor(hdc, g_colorAccent);
+        TextOut(hdc, x, y, "CPU", 3);
+        x += 28;
+
+        char val[16];
+        snprintf(val, sizeof(val), "%.0f%%", cpuPct);
+        SetTextColor(hdc, g_colorText);
+        TextOut(hdc, x, y, val, (int)strlen(val));
+        x += 35;
+    }
+
+    // Séparateur
+    SetTextColor(hdc, g_colorBorder);
+    TextOut(hdc, x, y, "|", 1);
+    x += 14;
+
+    // RAM - format: "RAM   X.X/X.X GB  XX.X%  ████"
+    if (ram && ram->enabled && ram->line_count > 0) {
+        float used = 0, total = 0;
+        sscanf(ram->display_lines[0], "RAM %f/%f", &used, &total);
+
+        SetTextColor(hdc, g_colorAccent2);
+        TextOut(hdc, x, y, "RAM", 3);
+        x += 30;
+
+        char val[24];
+        snprintf(val, sizeof(val), "%.1f/%.0fGB", used, total);
+        SetTextColor(hdc, g_colorText);
+        TextOut(hdc, x, y, val, (int)strlen(val));
+    }
 }
