@@ -297,16 +297,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 // Page Performance normale
                 int y = 50;
 
-                // Logo ASCII
-                SelectObject(hdc, hFontTitle);
-                SetTextColor(hdc, g_colorAccent);
-                TextOut(hdc, 16, y, g_bannerTop, (int)strlen(g_bannerTop));
-                y += 18;
-                SelectObject(hdc, hFontNormal);
-                SetTextColor(hdc, g_colorAccent2);
-                TextOut(hdc, 16, y, g_bannerBottom, (int)strlen(g_bannerBottom));
-                y += 16;
-
                 // Uptime
                 MetricData* uptime = GetMetricByName("Uptime");
                 if (uptime && uptime->enabled && g_config.show_uptime) {

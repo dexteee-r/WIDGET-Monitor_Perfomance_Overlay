@@ -25,7 +25,7 @@
 #define PAGE_COUNT 3
 
 // Dimensions onglets
-#define TAB_HEIGHT 24
+#define TAB_HEIGHT 18
 #define TAB_WIDTH 80
 #define TAB_MARGIN 4
 
