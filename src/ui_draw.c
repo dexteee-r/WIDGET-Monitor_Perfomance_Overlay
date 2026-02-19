@@ -369,19 +369,19 @@ void DrawTaskKillerPage(HDC hdc, int width, int height, HFONT hFontNormal, HFONT
  * Dessine l'interface en mode ultra-compact (CPU + RAM sur une ligne)
  */
 void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
-    (void)width;  // Unused
+    (void)height;  // Positions hardcodées sur WINDOW_HEIGHT_COMPACT
     SelectObject(hdc, hFont);
     SetBkMode(hdc, TRANSPARENT);
 
-    MetricData* cpu    = GetMetricByName("CPU");
-    MetricData* ram    = GetMetricByName("RAM");
-    MetricData* prayer = GetMetricByName("Prayer");
+    MetricData* cpu      = GetMetricByName("CPU");
+    MetricData* ram      = GetMetricByName("RAM");
+    MetricData* datetime = GetMetricByName("DateTime");
+    MetricData* prayer   = GetMetricByName("Prayer");
 
-    // === Ligne 1 : CPU | RAM ===
+    // === Ligne 1 : CPU | RAM (y=8) ===
     int x  = 12;
-    int y1 = 10;
+    int y1 = 8;
 
-    // CPU - format: "CPU   XX.X%  X.XX GHz  ████"
     if (cpu && cpu->enabled && cpu->line_count > 0) {
         float cpuPct = 0;
         sscanf(cpu->display_lines[0], "CPU %f", &cpuPct);
@@ -401,7 +401,6 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
     TextOut(hdc, x, y1, "|", 1);
     x += 14;
 
-    // RAM - format: "RAM   X.X/X.X GB  XX.X%  ████"
     if (ram && ram->enabled && ram->line_count > 0) {
         float used = 0, total = 0;
         sscanf(ram->display_lines[0], "RAM %f/%f", &used, &total);
@@ -416,15 +415,30 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
         TextOut(hdc, x, y1, val, (int)strlen(val));
     }
 
-    // === Séparateur horizontal ===
-    int sepY = height / 2 - 8;
+    // === Séparateur horizontal (y=28) ===
     HPEN sepPen = CreatePen(PS_SOLID, 1, g_colorBorder);
     SelectObject(hdc, sepPen);
-    MoveToEx(hdc, 8, sepY, NULL);
-    LineTo(hdc, width - 8, sepY);
+    MoveToEx(hdc, 8, 28, NULL);
+    LineTo(hdc, width - 8, 28);
     DeleteObject(sepPen);
 
-    // === Ligne 2 : Prière ===
+    // === Ligne 2 : Date + Heure (y=36) ===
+    // Format source: "Time  Lun 20 Jan  14:35:22"  → offset 6 = "Time  "
+    if (datetime && datetime->enabled && datetime->line_count > 0) {
+        char dtDay[4] = {0}, dtMonth[4] = {0};
+        int dtDayNum = 0, dtH = 0, dtM = 0, dtS = 0;
+        sscanf(datetime->display_lines[0] + 6, "%3s %d %3s %d:%d:%d",
+               dtDay, &dtDayNum, dtMonth, &dtH, &dtM, &dtS);
+
+        char dtLine[32];
+        snprintf(dtLine, sizeof(dtLine), "%s %02d %s  %02d:%02d",
+                 dtDay, dtDayNum, dtMonth, dtH, dtM);
+
+        SetTextColor(hdc, datetime->color);
+        TextOut(hdc, 12, 36, dtLine, (int)strlen(dtLine));
+    }
+
+    // === Ligne 3 : Prière (y=60) ===
     // Format source: "Priere? %-8s %02d:%02d  (%dh%02d)"  (? = ' ' ou '*')
     // Offset 8 = longueur de "Priere? " → on tombe directement sur le nom
     if (prayer && prayer->enabled && prayer->line_count > 0) {
@@ -434,25 +448,21 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
         sscanf(prayer->display_lines[0] + 8, "%15s %7s %15s",
                prayerName, prayerTime, remaining);
 
-        int y2 = height / 2 + 4;
         x = 12;
 
         SetTextColor(hdc, g_colorBorder);
-        TextOut(hdc, x, y2, "~", 1);
+        TextOut(hdc, x, 60, "~", 1);
         x += 14;
 
-        // Nom de la prière coloré selon l'urgence
         SetTextColor(hdc, prayer->color);
-        TextOut(hdc, x, y2, prayerName, (int)strlen(prayerName));
+        TextOut(hdc, x, 60, prayerName, (int)strlen(prayerName));
         x += 58;
 
-        // Heure en couleur atténuée
         SetTextColor(hdc, g_colorTextMuted);
-        TextOut(hdc, x, y2, prayerTime, (int)strlen(prayerTime));
+        TextOut(hdc, x, 60, prayerTime, (int)strlen(prayerTime));
         x += 44;
 
-        // Temps restant coloré selon l'urgence
         SetTextColor(hdc, prayer->color);
-        TextOut(hdc, x, y2, remaining, (int)strlen(remaining));
+        TextOut(hdc, x, 60, remaining, (int)strlen(remaining));
     }
 }
