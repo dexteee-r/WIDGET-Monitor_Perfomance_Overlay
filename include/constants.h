@@ -14,7 +14,7 @@
 #define WINDOW_WIDTH_COMPACT 200   // Largeur réduite en mode compact
 #define WINDOW_HEIGHT_FULL 280     // Augmenté pour 8 plugins
 #define WINDOW_HEIGHT_MIN 220      // Augmenté pour les plugins essentiels
-#define WINDOW_HEIGHT_COMPACT 60   // Mode ultra-compact (CPU + RAM)
+#define WINDOW_HEIGHT_COMPACT 80   // Mode ultra-compact (CPU + RAM + Prière)
 #define WINDOW_HEIGHT_TASKS 320    // Hauteur pour la page Task Killer
 #define WINDOW_HEIGHT_SETTINGS 350 // Hauteur pour la page Settings
 

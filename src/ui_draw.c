@@ -373,11 +373,13 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
     SelectObject(hdc, hFont);
     SetBkMode(hdc, TRANSPARENT);
 
-    MetricData* cpu = GetMetricByName("CPU");
-    MetricData* ram = GetMetricByName("RAM");
+    MetricData* cpu    = GetMetricByName("CPU");
+    MetricData* ram    = GetMetricByName("RAM");
+    MetricData* prayer = GetMetricByName("Prayer");
 
-    int x = 12;
-    int y = (height - 14) / 2;
+    // === Ligne 1 : CPU | RAM ===
+    int x  = 12;
+    int y1 = 10;
 
     // CPU - format: "CPU   XX.X%  X.XX GHz  ████"
     if (cpu && cpu->enabled && cpu->line_count > 0) {
@@ -385,19 +387,18 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
         sscanf(cpu->display_lines[0], "CPU %f", &cpuPct);
 
         SetTextColor(hdc, g_colorAccent);
-        TextOut(hdc, x, y, "CPU", 3);
+        TextOut(hdc, x, y1, "CPU", 3);
         x += 28;
 
         char val[16];
         snprintf(val, sizeof(val), "%.0f%%", cpuPct);
         SetTextColor(hdc, g_colorText);
-        TextOut(hdc, x, y, val, (int)strlen(val));
+        TextOut(hdc, x, y1, val, (int)strlen(val));
         x += 35;
     }
 
-    // Séparateur
     SetTextColor(hdc, g_colorBorder);
-    TextOut(hdc, x, y, "|", 1);
+    TextOut(hdc, x, y1, "|", 1);
     x += 14;
 
     // RAM - format: "RAM   X.X/X.X GB  XX.X%  ████"
@@ -406,12 +407,52 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
         sscanf(ram->display_lines[0], "RAM %f/%f", &used, &total);
 
         SetTextColor(hdc, g_colorAccent2);
-        TextOut(hdc, x, y, "RAM", 3);
+        TextOut(hdc, x, y1, "RAM", 3);
         x += 30;
 
         char val[24];
         snprintf(val, sizeof(val), "%.1f/%.0fGB", used, total);
         SetTextColor(hdc, g_colorText);
-        TextOut(hdc, x, y, val, (int)strlen(val));
+        TextOut(hdc, x, y1, val, (int)strlen(val));
+    }
+
+    // === Séparateur horizontal ===
+    int sepY = height / 2 - 8;
+    HPEN sepPen = CreatePen(PS_SOLID, 1, g_colorBorder);
+    SelectObject(hdc, sepPen);
+    MoveToEx(hdc, 8, sepY, NULL);
+    LineTo(hdc, width - 8, sepY);
+    DeleteObject(sepPen);
+
+    // === Ligne 2 : Prière ===
+    // Format source: "Priere? %-8s %02d:%02d  (%dh%02d)"  (? = ' ' ou '*')
+    // Offset 8 = longueur de "Priere? " → on tombe directement sur le nom
+    if (prayer && prayer->enabled && prayer->line_count > 0) {
+        char prayerName[16] = {0};
+        char prayerTime[8]  = {0};
+        char remaining[16]  = {0};
+        sscanf(prayer->display_lines[0] + 8, "%15s %7s %15s",
+               prayerName, prayerTime, remaining);
+
+        int y2 = height / 2 + 4;
+        x = 12;
+
+        SetTextColor(hdc, g_colorBorder);
+        TextOut(hdc, x, y2, "~", 1);
+        x += 14;
+
+        // Nom de la prière coloré selon l'urgence
+        SetTextColor(hdc, prayer->color);
+        TextOut(hdc, x, y2, prayerName, (int)strlen(prayerName));
+        x += 58;
+
+        // Heure en couleur atténuée
+        SetTextColor(hdc, g_colorTextMuted);
+        TextOut(hdc, x, y2, prayerTime, (int)strlen(prayerTime));
+        x += 44;
+
+        // Temps restant coloré selon l'urgence
+        SetTextColor(hdc, prayer->color);
+        TextOut(hdc, x, y2, remaining, (int)strlen(remaining));
     }
 }
