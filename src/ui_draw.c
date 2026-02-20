@@ -438,7 +438,7 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
         TextOut(hdc, 12, 36, dtLine, (int)strlen(dtLine));
     }
 
-    // === Ligne 3 : Prière (y=60) ===
+    // === Ligne 3 : Prière (y=52) ===
     // Format source: "Priere? %-8s %02d:%02d  (%dh%02d)"  (? = ' ' ou '*')
     // Offset 8 = longueur de "Priere? " → on tombe directement sur le nom
     if (prayer && prayer->enabled && prayer->line_count > 0) {
@@ -451,14 +451,14 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
         x = 12;
 
         SetTextColor(hdc, prayer->color);
-        TextOut(hdc, x, 60, prayerName, (int)strlen(prayerName));
+        TextOut(hdc, x, 52, prayerName, (int)strlen(prayerName));
         x += 58;
 
         SetTextColor(hdc, g_colorTextMuted);
-        TextOut(hdc, x, 60, prayerTime, (int)strlen(prayerTime));
+        TextOut(hdc, x, 52, prayerTime, (int)strlen(prayerTime));
         x += 44;
 
         SetTextColor(hdc, prayer->color);
-        TextOut(hdc, x, 60, remaining, (int)strlen(remaining));
+        TextOut(hdc, x, 52, remaining, (int)strlen(remaining));
     }
 }
