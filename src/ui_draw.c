@@ -450,10 +450,6 @@ void DrawCompactMode(HDC hdc, int width, int height, HFONT hFont) {
 
         x = 12;
 
-        SetTextColor(hdc, g_colorBorder);
-        TextOut(hdc, x, 60, "~", 1);
-        x += 14;
-
         SetTextColor(hdc, prayer->color);
         TextOut(hdc, x, 60, prayerName, (int)strlen(prayerName));
         x += 58;
