@@ -19,7 +19,7 @@
 
 ## 📸 Aperçu
 
-![alt text](/Screenchots/image.png)
+![alt text](./screenshots/image.png)
 
 ## ✨ Fonctionnalités
 
