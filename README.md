@@ -70,8 +70,9 @@
 - **MinGW-w64** ou **MSVC** (Visual Studio)
 - **Make** (optionnel, recommandé)
 - **windres** (inclus avec MinGW)
+- 
 
-#### **Installation rapide avec Chocolatey**
+#### **Installation rapide avec Chocolatey** (avec les droits administrateur)
 ```powershell
 choco install mingw make -y
 ```
