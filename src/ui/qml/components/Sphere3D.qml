@@ -41,6 +41,12 @@ Item {
                                      && (Window.active || Config.animateInBackground)
                                      && !Overlay.clickThrough
 
+    // Cadrage : le champ de vision étant VERTICAL, la taille apparente de la sphère
+    // est proportionnelle à la hauteur du View3D — réduire la zone réduirait donc la
+    // sphère. On rapproche la caméra d'autant (`zoom`) : la zone maigrit, la sphère
+    // garde sa taille en pixels et occupe simplement mieux son panneau.
+    property real zoom: 1.20
+
     // Valeurs lissées + animées (mises à jour à 30 Hz par le ticker).
     property real fB: 0.0
     property real fM: 0.0
@@ -65,7 +71,7 @@ Item {
 
         PerspectiveCamera {
             id: cam
-            position: Qt.vector3d(0, 0, 3.9)
+            position: Qt.vector3d(0, 0, 3.9 / root.zoom)
             fieldOfView: 45
             clipNear: 0.1   // défaut Qt = 10 → clipperait la sphère (à ~4 unités) !
             clipFar: 100

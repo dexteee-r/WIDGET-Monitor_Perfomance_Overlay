@@ -23,6 +23,11 @@ Item {
     property real shown: value
     Behavior on shown { NumberAnimation { duration: 550; easing.type: Easing.OutCubic } }
 
+    // Taille de lecture centrale proportionnelle au diamètre : le même cockpit
+    // doit tenir en 1280x720 (jauge ~105 px) et en plein écran (jauge ~300 px).
+    // Une constante ne peut pas servir les deux — trop grosse ici, perdue là-bas.
+    readonly property real readoutSize: Math.max(15, Math.min(96, Math.min(width, height) * 0.24))
+
     readonly property real _cx: width / 2
     readonly property real _cy: height / 2
     readonly property real _r: Math.min(width, height) / 2 - lineWidth / 2
