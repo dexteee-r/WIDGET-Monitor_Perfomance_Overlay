@@ -57,54 +57,67 @@ Item {
             }
             Rectangle { x: 0; y: 0; width: 44; height: 2; color: Theme.accent }
 
-            Row {
-                anchors.left: parent.left; anchors.leftMargin: 22
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 14
-                Rectangle { width: 10; height: 10; radius: 5; color: Theme.ok; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: (Metrics.hostName + " perf").toUpperCase(); color: Theme.textHi
-                       font.family: Theme.fontUi; font.pixelSize: 16; font.weight: Font.Bold
-                       font.letterSpacing: 3; anchors.verticalCenter: parent.verticalCenter }
-            }
+            // Header en RowLayout : les 3 blocs (identité / navigation / statut)
+            // se poussent au lieu de se chevaucher. Les espaceurs absorbent la
+            // largeur restante ; le titre s'élide si le nom de machine est long.
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 22
+                anchors.rightMargin: 22
+                spacing: 16
 
-            NavBar {
-                anchors.left: parent.left; anchors.leftMargin: 360
-                anchors.verticalCenter: parent.verticalCenter
-            }
+                Rectangle {
+                    Layout.alignment: Qt.AlignVCenter
+                    Layout.preferredWidth: 10; Layout.preferredHeight: 10
+                    radius: 5; color: Theme.ok
+                }
+                Text {
+                    Layout.alignment: Qt.AlignVCenter
+                    Layout.maximumWidth: 300
+                    text: (Metrics.hostName + " perf").toUpperCase(); color: Theme.textHi
+                    font.family: Theme.fontUi; font.pixelSize: 16; font.weight: Font.Bold
+                    font.letterSpacing: 3; elide: Text.ElideRight
+                }
 
-            Row {
-                anchors.right: parent.right; anchors.rightMargin: 22
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 26
+                Item { Layout.fillWidth: true; Layout.preferredWidth: 1 }
+
+                NavBar { Layout.alignment: Qt.AlignVCenter }
+
+                Item { Layout.fillWidth: true; Layout.preferredWidth: 1 }
+
                 Row {
-                    spacing: 9
-                    anchors.verticalCenter: parent.verticalCenter
-                    Rectangle { width: 9; height: 9; radius: 4.5
-                                color: Overlay.clickThrough ? Theme.warn : Theme.ok
-                                anchors.verticalCenter: parent.verticalCenter }
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 18
+                    Row {
+                        spacing: 9
+                        anchors.verticalCenter: parent.verticalCenter
+                        Rectangle { width: 9; height: 9; radius: 4.5
+                                    color: Overlay.clickThrough ? Theme.warn : Theme.ok
+                                    anchors.verticalCenter: parent.verticalCenter }
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+                            Text { text: Overlay.clickThrough ? "PASSIF" : "INTERACTIF"
+                                   color: Theme.textHi; font.family: Theme.fontUi; font.pixelSize: 12; font.letterSpacing: 1 }
+                            Text { text: "Ctrl+Alt+O"; color: Theme.muted; font.family: Theme.fontUi
+                                   font.pixelSize: 9; font.letterSpacing: 1 }
+                        }
+                    }
+                    Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
+                    Chip { k: "PROCESSUS"; v: "" + Metrics.process.count; anchors.verticalCenter: parent.verticalCenter }
+                    Chip { k: "UPTIME"; v: Fmt.uptime(Metrics.uptime.seconds); anchors.verticalCenter: parent.verticalCenter }
+                    Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2
-                        Text { text: Overlay.clickThrough ? "PASSIF" : "INTERACTIF"
-                               color: Theme.textHi; font.family: Theme.fontUi; font.pixelSize: 12; font.letterSpacing: 1 }
-                        Text { text: "Ctrl+Alt+O"; color: Theme.muted; font.family: Theme.fontUi
-                               font.pixelSize: 9; font.letterSpacing: 1 }
+                        Text { anchors.right: parent.right
+                               text: Metrics.dateTime.now.toLocaleTimeString(Qt.locale("fr_FR"), "HH:mm:ss")
+                               color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: 28
+                               font.weight: Font.Bold; font.features: ({ "tnum": 1 }) }
+                        Text { anchors.right: parent.right
+                               text: Metrics.dateTime.now.toLocaleDateString(Qt.locale("fr_FR"), "ddd dd MMM").toUpperCase()
+                               color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 3 }
                     }
-                }
-                Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
-                Chip { k: "PROCESSUS"; v: "" + Metrics.process.count; anchors.verticalCenter: parent.verticalCenter }
-                Chip { k: "UPTIME"; v: Fmt.uptime(Metrics.uptime.seconds); anchors.verticalCenter: parent.verticalCenter }
-                Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 2
-                    Text { anchors.right: parent.right
-                           text: Metrics.dateTime.now.toLocaleTimeString(Qt.locale("fr_FR"), "HH:mm:ss")
-                           color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: 30
-                           font.weight: Font.Bold; font.features: ({ "tnum": 1 }) }
-                    Text { anchors.right: parent.right
-                           text: Metrics.dateTime.now.toLocaleDateString(Qt.locale("fr_FR"), "ddd dd MMM").toUpperCase()
-                           color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 3 }
                 }
             }
         }

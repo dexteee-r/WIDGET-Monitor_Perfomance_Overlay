@@ -13,6 +13,11 @@ Item {
     property color statusColor: Theme.ok
     property bool alert: false               // pulse de bordure sur état critique
 
+    // Hauteur de la « chrome » (paddings + en-tête) : à ajouter à la hauteur
+    // implicite du contenu pour dimensionner un panneau sur son contenu réel
+    // au lieu d'une constante devinée (source des contenus rognés).
+    readonly property real chromeHeight: Theme.pad + header.height + 10 + Theme.pad
+
     default property alias content: body.data
 
     // Fond + bordure

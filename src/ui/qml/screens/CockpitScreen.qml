@@ -162,9 +162,12 @@ Item {
             spacing: Theme.gap
 
             // ----- FLUX DE CHARGE (hero) -----
+            // Seul panneau extensible de la colonne : il absorbe la place que
+            // les panneaux dimensionnés sur leur contenu ne prennent pas.
             Panel {
                 Layout.fillWidth: true; Layout.fillHeight: true
-                Layout.preferredHeight: 340
+                Layout.preferredHeight: 240
+                Layout.minimumHeight: 240
                 title: "FLUX DE CHARGE"
                 statusColor: Theme.statusColor(Metrics.systemLoad)
                 tag: "CPU · GPU"
@@ -175,13 +178,16 @@ Item {
             }
 
             // ----- STOCKAGE -----
+            // Hauteur = contenu réel (n disques) + chrome : plus de 3ᵉ disque rogné.
             Panel {
-                Layout.fillWidth: true; Layout.fillHeight: true
-                Layout.preferredHeight: 170
+                id: storagePanel
+                Layout.fillWidth: true
+                Layout.preferredHeight: disksCol.implicitHeight + storagePanel.chromeHeight
                 title: "STOCKAGE"
                 ColumnLayout {
+                    id: disksCol
                     anchors.fill: parent
-                    spacing: 14
+                    spacing: 10
                     Repeater {
                         model: Metrics.disk.disks
                         ColumnLayout {
@@ -206,8 +212,8 @@ Item {
 
             // ----- RÉSEAU -----
             Panel {
-                Layout.fillWidth: true; Layout.fillHeight: true
-                Layout.preferredHeight: 110
+                Layout.fillWidth: true
+                Layout.preferredHeight: 104
                 title: "RÉSEAU"
                 tag: Metrics.network.ipAddress
                 RowLayout {
@@ -252,6 +258,7 @@ Item {
             Panel {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 Layout.preferredHeight: 170
+                Layout.minimumHeight: 170
                 title: "MÉMOIRE"
                 statusColor: Theme.statusColor(Metrics.ram.usagePercent / 100)
                 RowLayout {
@@ -308,7 +315,10 @@ Item {
             // ----- SYSTÈME -----
             Panel {
                 Layout.fillWidth: true; Layout.fillHeight: true
-                Layout.preferredHeight: 235   // contenu dense (audio + procs)
+                // 5 lignes KV (30) + libellé audio + VU-mètre : sous 248 le
+                // VU-mètre passait sous le bord du panneau.
+                Layout.preferredHeight: 248
+                Layout.minimumHeight: 248
                 title: "SYSTÈME"
                 tag: Metrics.network.ipAddress
                 ColumnLayout {
