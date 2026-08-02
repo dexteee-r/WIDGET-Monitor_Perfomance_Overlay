@@ -39,6 +39,10 @@ qt_add_executable(appPerformanceOverlay
     src/core/metrics/prayer_provider.cpp
     src/core/metrics/claude_usage_provider.h
     src/core/metrics/claude_usage_provider.cpp
+    src/core/metrics/ping_provider.h
+    src/core/metrics/ping_provider.cpp
+    src/core/metrics/weather_provider.h
+    src/core/metrics/weather_provider.cpp
     src/core/metrics/metrics_service.h
     src/core/metrics/metrics_service.cpp
     # core/platform/windows — services plateforme (overlay/click-through)
@@ -147,7 +151,8 @@ target_link_libraries(appPerformanceOverlay PRIVATE
 )
 
 # Libs Win32 : advapi32 (registre), ole32 (COM volume), psapi (process),
-# iphlpapi (débit réseau GetIfTable2).
+# iphlpapi (débit réseau GetIfTable2 + ICMP IcmpSendEcho du ping),
+# ws2_32 (types winsock exigés par icmpapi.h).
 if(WIN32)
-    target_link_libraries(appPerformanceOverlay PRIVATE advapi32 ole32 psapi iphlpapi)
+    target_link_libraries(appPerformanceOverlay PRIVATE advapi32 ole32 psapi iphlpapi ws2_32)
 endif()

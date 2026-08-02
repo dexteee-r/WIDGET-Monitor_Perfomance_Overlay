@@ -97,5 +97,6 @@ void NetworkProvider::sampleThroughput()
     m_down = down;
     m_up = up;
     m_downHist.push(down);
+    m_upHist.push(up);
     emit ratesChanged();
 }

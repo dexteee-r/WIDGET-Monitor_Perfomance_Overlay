@@ -20,6 +20,7 @@ class NetworkProvider : public MetricProvider
     Q_PROPERTY(double downBytesPerSec READ downBytesPerSec NOTIFY ratesChanged)
     Q_PROPERTY(double upBytesPerSec READ upBytesPerSec NOTIFY ratesChanged)
     Q_PROPERTY(QVariantList downHistory READ downHistory NOTIFY ratesChanged)
+    Q_PROPERTY(QVariantList upHistory READ upHistory NOTIFY ratesChanged)
 
 public:
     explicit NetworkProvider(QObject *parent = nullptr);
@@ -28,6 +29,7 @@ public:
     double downBytesPerSec() const { return m_down; }
     double upBytesPerSec() const { return m_up; }
     QVariantList downHistory() const { return m_downHist.toVariantList(); }
+    QVariantList upHistory() const { return m_upHist.toVariantList(); }
 
     void poll() override;
 
@@ -45,6 +47,7 @@ private:
     double m_down = 0.0;
     double m_up = 0.0;
     History m_downHist;
+    History m_upHist;
     quint64 m_lastIn = 0;
     quint64 m_lastOut = 0;
     bool m_firstRate = true;

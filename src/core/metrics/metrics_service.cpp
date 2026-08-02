@@ -15,10 +15,13 @@ MetricsService::MetricsService(QObject *parent)
     , m_volume(new VolumeProvider(this))
     , m_prayer(new PrayerProvider(this))
     , m_claudeUsage(new ClaudeUsageProvider(this))
+    , m_ping(new PingProvider(this))
+    , m_weather(new WeatherProvider(this))
     , m_timer(new QTimer(this))
 {
     m_providers = {m_cpu, m_ram, m_gpu, m_disk, m_uptime, m_dateTime,
-                   m_process, m_network, m_volume, m_prayer, m_claudeUsage};
+                   m_process, m_network, m_volume, m_prayer, m_claudeUsage,
+                   m_ping, m_weather};
 
     connect(m_timer, &QTimer::timeout, this, &MetricsService::pollAll);
     m_timer->start(m_intervalMs);

@@ -18,6 +18,8 @@
 #include "volume_provider.h"
 #include "prayer_provider.h"
 #include "claude_usage_provider.h"
+#include "ping_provider.h"
+#include "weather_provider.h"
 
 class QTimer;
 
@@ -44,6 +46,8 @@ class MetricsService : public QObject
     Q_PROPERTY(VolumeProvider *volume READ volume CONSTANT)
     Q_PROPERTY(PrayerProvider *prayer READ prayer CONSTANT)
     Q_PROPERTY(ClaudeUsageProvider *claudeUsage READ claudeUsage CONSTANT)
+    Q_PROPERTY(PingProvider *ping READ ping CONSTANT)
+    Q_PROPERTY(WeatherProvider *weather READ weather CONSTANT)
     Q_PROPERTY(QString hostName READ hostName CONSTANT)   // nom de la machine (statique)
     Q_PROPERTY(double systemLoad READ systemLoad NOTIFY systemLoadChanged)               // 0..1
     Q_PROPERTY(QVariantList systemLoadHistory READ systemLoadHistory NOTIFY systemLoadChanged)
@@ -63,6 +67,8 @@ public:
     VolumeProvider *volume() const { return m_volume; }
     PrayerProvider *prayer() const { return m_prayer; }
     ClaudeUsageProvider *claudeUsage() const { return m_claudeUsage; }
+    PingProvider *ping() const { return m_ping; }
+    WeatherProvider *weather() const { return m_weather; }
 
     QString hostName() const { return QSysInfo::machineHostName(); }
 
@@ -90,6 +96,8 @@ private:
     VolumeProvider *m_volume;
     PrayerProvider *m_prayer;
     ClaudeUsageProvider *m_claudeUsage;
+    PingProvider *m_ping;
+    WeatherProvider *m_weather;
 
     QList<MetricProvider *> m_providers;
     QTimer *m_timer;
