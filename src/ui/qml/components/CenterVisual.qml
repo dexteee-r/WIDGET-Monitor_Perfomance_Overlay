@@ -28,7 +28,11 @@ Item {
     // élargit l'écart parole↔cri ; le monter sature plus vite.
     readonly property real audioLevel: Math.min(1.5, Math.sqrt(micRaw) * Config.micSensitivity)
     readonly property real rBass: audioLevel
-    readonly property real rMid: Metrics.cpu.usagePercent / 100
+    // mid = 0 VOLONTAIREMENT : la sphère ne réagit QU'AU MICRO. Le CPU pilotait
+    // avant la vitesse du bruit (sphere.vert) et de la rotation (Sphere3D), ce qui
+    // mélangeait deux sources. Les termes de base (0.18 dans le shader, 0.0016 sur
+    // la rotation) suffisent à garder la sphère vivante au silence.
+    readonly property real rMid: 0.0
     readonly property real rHigh: audioLevel
 
     // ---- Rendu 3D (chargé seulement si l'effet est activé) ----
