@@ -83,6 +83,58 @@ Item {
 
                 NavBar { Layout.alignment: Qt.AlignVCenter }
 
+                // Édition de la disposition. Le header n'est volontairement PAS
+                // déplaçable : c'est le repère fixe de l'overlay (et il porte la
+                // commande qui active le mode).
+                Row {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 6
+
+                    Rectangle {
+                        width: editLbl.implicitWidth + 18; height: 26
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: Layouts.editMode
+                               ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16)
+                               : "transparent"
+                        border.width: 1
+                        border.color: Layouts.editMode ? Theme.accent : Theme.border
+                        Text {
+                            id: editLbl
+                            anchors.centerIn: parent
+                            text: Layouts.editMode ? "OK" : "ZONES"
+                            color: Layouts.editMode ? Theme.accent : Theme.muted
+                            font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 1.2
+                            font.weight: Layouts.editMode ? Font.DemiBold : Font.Normal
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Layouts.editMode = !Layouts.editMode
+                        }
+                    }
+
+                    Rectangle {
+                        visible: Layouts.editMode
+                        width: razLbl.implicitWidth + 16; height: 26
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Theme.border
+                        Text {
+                            id: razLbl
+                            anchors.centerIn: parent
+                            text: "RAZ"
+                            color: Theme.muted
+                            font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 1.2
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Layouts.reset()
+                        }
+                    }
+                }
+
                 Item { Layout.fillWidth: true; Layout.preferredWidth: 1 }
 
                 Row {
@@ -104,7 +156,9 @@ Item {
                         }
                     }
                     Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
-                    Chip { k: "PROCESSUS"; v: "" + Metrics.process.count; anchors.verticalCenter: parent.verticalCenter }
+                    // La puce PROCESSUS a été retirée : la zone SYSTÈME affiche déjà
+                    // le compte, et le header n'avait plus la largeur pour tout tenir
+                    // (l'horloge sortait de l'écran).
                     Chip { k: "UPTIME"; v: Fmt.uptime(Metrics.uptime.seconds); anchors.verticalCenter: parent.verticalCenter }
                     Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
                     Column {

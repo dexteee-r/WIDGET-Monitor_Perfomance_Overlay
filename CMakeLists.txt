@@ -51,6 +51,8 @@ qt_add_executable(appPerformanceOverlay
     # core/config — lecture config.ini
     src/core/config/config_manager.h
     src/core/config/config_manager.cpp
+    src/core/config/layout_manager.h
+    src/core/config/layout_manager.cpp
     # core/services — tray, démarrage auto, task killer
     src/core/services/tray_service.h
     src/core/services/tray_service.cpp
@@ -110,6 +112,11 @@ qt_add_qml_module(appPerformanceOverlay
         src/ui/qml/components/Sparkline.qml
         src/ui/qml/components/AlertVeil.qml
         src/ui/qml/components/NavBar.qml
+        src/ui/qml/components/NetGraph.qml
+        src/ui/qml/components/TileFrame.qml
+        src/ui/qml/components/PingIndicator.qml
+        src/ui/qml/components/WeatherTile.qml
+        src/ui/qml/components/TimerTile.qml
         src/ui/qml/screens/CockpitScreen.qml
         src/ui/qml/screens/CompactScreen.qml
         src/ui/qml/screens/TasksScreen.qml

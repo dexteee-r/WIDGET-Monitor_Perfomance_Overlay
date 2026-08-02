@@ -87,6 +87,7 @@ Window {
     // Échap = sortir du plein écran (NE quitte PLUS l'app : évite la fermeture
     // accidentelle. Pour quitter → menu du tray « Quitter »).
     Shortcut { sequence: "Escape"; onActivated: { if (Nav.view === "fullpage") Nav.view = "cockpit" } }
+    Shortcut { sequence: "F3";  onActivated: Layouts.editMode = !Layouts.editMode }
     Shortcut { sequence: "F1";  onActivated: Nav.view = "cockpit" }
     Shortcut { sequence: "F2";  onActivated: Nav.view = "compact" }
     Shortcut { sequence: "F4";  onActivated: Nav.view = "tasks" }
