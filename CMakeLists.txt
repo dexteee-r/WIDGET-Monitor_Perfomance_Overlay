@@ -116,6 +116,7 @@ qt_add_qml_module(appPerformanceOverlay
         src/ui/qml/components/TileFrame.qml
         src/ui/qml/components/PingIndicator.qml
         src/ui/qml/components/WeatherTile.qml
+        src/ui/qml/components/WeatherIcon.qml
         src/ui/qml/components/TimerTile.qml
         src/ui/qml/screens/CockpitScreen.qml
         src/ui/qml/screens/CompactScreen.qml
