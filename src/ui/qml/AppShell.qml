@@ -13,8 +13,8 @@ Item {
         property string k: ""
         property string v: ""
         spacing: 2
-        Text { text: k; color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 10; font.letterSpacing: 2 }
-        Text { text: v; color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: 16
+        Text { text: k; color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel; font.letterSpacing: Theme.lsLabel }
+        Text { text: v; color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: Theme.fsValue
                font.weight: Font.DemiBold; font.features: ({ "tnum": 1 }) }
     }
 
@@ -49,91 +49,44 @@ Item {
         // ---------- HEADER PARTAGÉ ----------
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 66
+            Layout.preferredHeight: Theme.px(66)
             border.width: 1; border.color: Theme.border
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Theme.panelTop }
                 GradientStop { position: 1.0; color: Theme.bgBase2 }
             }
-            Rectangle { x: 0; y: 0; width: 44; height: 2; color: Theme.accent }
+            Rectangle { x: 0; y: 0; width: Theme.px(44); height: 2; color: Theme.accent }
 
             // Header en RowLayout : les 3 blocs (identité / navigation / statut)
             // se poussent au lieu de se chevaucher. Les espaceurs absorbent la
             // largeur restante ; le titre s'élide si le nom de machine est long.
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 22
-                anchors.rightMargin: 22
+                anchors.leftMargin: Theme.px(22)
+                anchors.rightMargin: Theme.px(22)
                 spacing: 16
 
                 Rectangle {
                     Layout.alignment: Qt.AlignVCenter
-                    Layout.preferredWidth: 10; Layout.preferredHeight: 10
+                    Layout.preferredWidth: Theme.px(10); Layout.preferredHeight: Theme.px(10)
                     radius: 5; color: Theme.ok
                 }
                 Text {
                     Layout.alignment: Qt.AlignVCenter
-                    Layout.maximumWidth: 300
+                    Layout.maximumWidth: Theme.px(300)
                     text: (Metrics.hostName + " perf").toUpperCase(); color: Theme.textHi
-                    font.family: Theme.fontUi; font.pixelSize: 16; font.weight: Font.Bold
-                    font.letterSpacing: 3; elide: Text.ElideRight
+                    font.family: Theme.fontUi; font.pixelSize: Theme.px(16); font.weight: Font.Bold
+                    font.letterSpacing: Theme.lsTitle; elide: Text.ElideRight
                 }
 
                 Item { Layout.fillWidth: true; Layout.preferredWidth: 1 }
 
                 NavBar { Layout.alignment: Qt.AlignVCenter }
 
-                // Édition de la disposition. Le header n'est volontairement PAS
-                // déplaçable : c'est le repère fixe de l'overlay (et il porte la
-                // commande qui active le mode).
-                Row {
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 6
-
-                    Rectangle {
-                        width: editLbl.implicitWidth + 18; height: 26
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: Layouts.editMode
-                               ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16)
-                               : "transparent"
-                        border.width: 1
-                        border.color: Layouts.editMode ? Theme.accent : Theme.border
-                        Text {
-                            id: editLbl
-                            anchors.centerIn: parent
-                            text: Layouts.editMode ? "OK" : "ZONES"
-                            color: Layouts.editMode ? Theme.accent : Theme.muted
-                            font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 1.2
-                            font.weight: Layouts.editMode ? Font.DemiBold : Font.Normal
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Layouts.editMode = !Layouts.editMode
-                        }
-                    }
-
-                    Rectangle {
-                        visible: Layouts.editMode
-                        width: razLbl.implicitWidth + 16; height: 26
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: "transparent"
-                        border.width: 1
-                        border.color: Theme.border
-                        Text {
-                            id: razLbl
-                            anchors.centerIn: parent
-                            text: "RAZ"
-                            color: Theme.muted
-                            font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 1.2
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Layouts.reset()
-                        }
-                    }
-                }
+                // Rien pour la disposition ici : organiser ses zones est un
+                // RÉGLAGE, pas une commande permanente. Elle vit donc dans l'écran
+                // Réglages ; pendant l'édition, une barre flottante (plus bas)
+                // porte « Terminer » et « Réinitialiser ».
 
                 Item { Layout.fillWidth: true; Layout.preferredWidth: 1 }
 
@@ -143,34 +96,34 @@ Item {
                     Row {
                         spacing: 9
                         anchors.verticalCenter: parent.verticalCenter
-                        Rectangle { width: 9; height: 9; radius: 4.5
+                        Rectangle { width: Theme.px(9); height: Theme.px(9); radius: width / 2
                                     color: Overlay.clickThrough ? Theme.warn : Theme.ok
                                     anchors.verticalCenter: parent.verticalCenter }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
                             Text { text: Overlay.clickThrough ? "PASSIF" : "INTERACTIF"
-                                   color: Theme.textHi; font.family: Theme.fontUi; font.pixelSize: 12; font.letterSpacing: 1 }
+                                   color: Theme.textHi; font.family: Theme.fontUi; font.pixelSize: Theme.fsBody; font.letterSpacing: Theme.lsLabel }
                             Text { text: "Ctrl+Alt+O"; color: Theme.muted; font.family: Theme.fontUi
-                                   font.pixelSize: 9; font.letterSpacing: 1 }
+                                   font.pixelSize: Theme.fsMicro; font.letterSpacing: Theme.lsLabel }
                         }
                     }
-                    Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
+                    Rectangle { width: 1; height: Theme.px(40); color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
                     // La puce PROCESSUS a été retirée : la zone SYSTÈME affiche déjà
                     // le compte, et le header n'avait plus la largeur pour tout tenir
                     // (l'horloge sortait de l'écran).
                     Chip { k: "UPTIME"; v: Fmt.uptime(Metrics.uptime.seconds); anchors.verticalCenter: parent.verticalCenter }
-                    Rectangle { width: 1; height: 40; color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
+                    Rectangle { width: 1; height: Theme.px(40); color: Theme.border; anchors.verticalCenter: parent.verticalCenter }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2
                         Text { anchors.right: parent.right
                                text: Metrics.dateTime.now.toLocaleTimeString(Qt.locale("fr_FR"), "HH:mm:ss")
-                               color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: 28
+                               color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: Theme.px(28)
                                font.weight: Font.Bold; font.features: ({ "tnum": 1 }) }
                         Text { anchors.right: parent.right
                                text: Metrics.dateTime.now.toLocaleDateString(Qt.locale("fr_FR"), "ddd dd MMM").toUpperCase()
-                               color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 3 }
+                               color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel; font.letterSpacing: Theme.lsTitle }
                     }
                 }
             }
@@ -199,6 +152,64 @@ Item {
         anchors.fill: parent
         active: shell._gpuHot || shell._cpuMax || shell._ramMax
         label: shell._alertLabel
+    }
+
+    // ===== Barre flottante du mode « organiser les zones » =====
+    // N'existe que pendant l'édition : le header reste donc propre en usage
+    // normal, et on garde une sortie visible sans avoir à connaître F3.
+    Rectangle {
+        visible: Layouts.editMode
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Theme.gap * 2
+        width: editRow.implicitWidth + Theme.px(28)
+        height: Theme.px(44)
+        radius: Theme.radius
+        color: Theme.panelBot
+        border.width: 1
+        border.color: Theme.accent
+
+        component EditBtn: Rectangle {
+            id: eb
+            property string label: ""
+            property bool primary: false
+            signal clicked()
+            implicitWidth: ebt.implicitWidth + Theme.px(20)
+            implicitHeight: Theme.px(26)
+            anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+            color: eb.primary ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18) : "transparent"
+            border.width: 1
+            border.color: eb.primary ? Theme.accent : Theme.border
+            Text {
+                id: ebt
+                anchors.centerIn: parent
+                text: eb.label
+                color: eb.primary ? Theme.accent : Theme.muted
+                font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                font.letterSpacing: Theme.lsLabel
+                font.weight: eb.primary ? Font.DemiBold : Font.Normal
+            }
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: eb.clicked()
+            }
+        }
+
+        Row {
+            id: editRow
+            anchors.centerIn: parent
+            spacing: Theme.px(10)
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "ORGANISER LES ZONES"
+                color: Theme.textHi
+                font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                font.letterSpacing: Theme.lsTitle; font.weight: Font.DemiBold
+            }
+            EditBtn { label: "TERMINER"; primary: true; onClicked: Layouts.editMode = false }
+            EditBtn { label: "RÉINITIALISER"; onClicked: Layouts.reset() }
+        }
     }
 
     Component { id: cockpitC;  CockpitScreen {} }

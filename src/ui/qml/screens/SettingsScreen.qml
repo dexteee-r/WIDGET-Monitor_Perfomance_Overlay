@@ -70,6 +70,34 @@ Item {
             }
         }
 
+        // ---- DISPOSITION DES ZONES ----
+        // Organiser ses zones est un réglage : la commande vit ici, pas dans le
+        // header. Activer bascule directement sur le cockpit, sinon on active un
+        // mode d'édition pour un écran qu'on ne regarde pas.
+        Panel {
+            Layout.fillWidth: true; Layout.preferredHeight: 140
+            title: "DISPOSITION"
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 10
+                Text { text: "Placer et redimensionner les zones"; color: Theme.text
+                       font.family: Theme.fontUi; font.pixelSize: 14; Layout.fillWidth: true }
+                RowLayout {
+                    spacing: 8
+                    Choice {
+                        text: "ORGANISER"
+                        on: Layouts.editMode
+                        onClicked: { Nav.view = "cockpit"; Layouts.editMode = true }
+                    }
+                    Choice { text: "RÉINITIALISER"; on: false; onClicked: Layouts.reset() }
+                }
+                Text { text: "Glisser une zone pour la déplacer, le coin bas-droit pour la redimensionner. Persistant via [Layout] dans config.ini"
+                       color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: 11
+                       Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                Item { Layout.fillHeight: true }
+            }
+        }
+
         // ---- PERFORMANCE ----
         Panel {
             Layout.fillWidth: true; Layout.preferredHeight: 140
