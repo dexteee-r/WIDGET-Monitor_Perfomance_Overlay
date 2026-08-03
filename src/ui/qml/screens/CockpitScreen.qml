@@ -17,11 +17,12 @@ Item {
         property string k: ""
         property string v: ""
         property color vc: Theme.textHi
-        implicitHeight: 30
+        implicitHeight: Theme.px(30)
         Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-               text: k; color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 12; font.letterSpacing: 1 }
+               text: k; color: Theme.muted; font.family: Theme.fontUi
+               font.pixelSize: Theme.fsBody; font.letterSpacing: Theme.lsLabel }
         Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-               text: v; color: vc; font.family: Theme.fontMono; font.pixelSize: 14
+               text: v; color: vc; font.family: Theme.fontMono; font.pixelSize: Theme.fsValue
                font.weight: Font.DemiBold; font.features: ({ "tnum": 1 }) }
         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.border2 }
     }
@@ -32,17 +33,17 @@ Item {
         property string label: ""
         property real ratio: 0        // 0..1
         property string detail: ""
-        spacing: 5
+        spacing: Theme.px(5)
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.px(8)
             Text { text: mrow.label; color: Theme.muted
-                   font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 1.4 }
+                   font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel; font.letterSpacing: Theme.lsLabel }
             Item { Layout.fillWidth: true }
             Text { text: mrow.detail; color: Theme.text
-                   font.family: Theme.fontMono; font.pixelSize: 11; font.features: ({ "tnum": 1 }) }
+                   font.family: Theme.fontMono; font.pixelSize: Theme.fsLabel; font.features: ({ "tnum": 1 }) }
             Text { text: Math.round(mrow.ratio * 100) + " %"; color: Theme.textHi
-                   font.family: Theme.fontMono; font.pixelSize: 13
+                   font.family: Theme.fontMono; font.pixelSize: Theme.fsValue
                    font.weight: Font.Bold; font.features: ({ "tnum": 1 }) }
         }
         SegmentBar { Layout.fillWidth: true; segments: 20; value: mrow.ratio }
@@ -53,7 +54,7 @@ Item {
         property string unit: "%"
         property string sub: ""
         property color bigColor: Theme.textHi
-        property int bigSize: 44
+        property int bigSize: Theme.fsBig
         spacing: 2
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -67,8 +68,9 @@ Item {
         // Le sous-libellé disparaît sous une certaine taille de jauge : en dessous
         // il chevauchait le chiffre et mordait sur l'anneau au lieu d'informer.
         Text { anchors.horizontalCenter: parent.horizontalCenter; text: sub
-               visible: sub !== "" && bigSize >= 26
-               color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 10; font.letterSpacing: 3 }
+               visible: sub !== "" && bigSize >= Theme.px(26)
+               color: Theme.muted; font.family: Theme.fontUi
+               font.pixelSize: Theme.fsLabel; font.letterSpacing: Theme.lsTitle }
     }
 
     // ======================= GRILLE LIBRE =======================
@@ -111,12 +113,12 @@ Item {
                 statusColor: Theme.statusColor(Metrics.cpu.usagePercent / 100)
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 10
+                    spacing: Theme.px(10)
                     Text {
                         Layout.fillWidth: true
                         text: Metrics.cpu.name; visible: text !== ""
-                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 10
-                        font.letterSpacing: 1; elide: Text.ElideRight
+                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: Theme.lsLabel; elide: Text.ElideRight
                         horizontalAlignment: Text.AlignHCenter
                     }
                     Item {
@@ -137,12 +139,8 @@ Item {
                             }
                         }
                     }
-                    Sparkline {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 30
-                        values: Metrics.cpu.usageHistory
-                        lineColor: Theme.statusColor(Metrics.cpu.usagePercent / 100)
-                    }
+                    // Sparkline retirée : la jauge dit déjà la charge, la courbe
+                    // n'ajoutait qu'un mouvement de fond.
                 }
             }
         }
@@ -160,12 +158,12 @@ Item {
                              : Metrics.gpu.temperatureC >= 72 ? Theme.warn : Theme.ok
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 10
+                    spacing: Theme.px(10)
                     Text {
                         Layout.fillWidth: true
                         text: Metrics.gpu.name; visible: Metrics.gpu.available && text !== ""
-                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 10
-                        font.letterSpacing: 1; elide: Text.ElideRight
+                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: Theme.lsLabel; elide: Text.ElideRight
                         horizontalAlignment: Text.AlignHCenter
                     }
                     Item {
@@ -187,11 +185,11 @@ Item {
                             anchors.centerIn: parent; visible: !Metrics.gpu.available
                             text: Metrics.gpu.name; width: parent.width * 0.9
                             horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-                            color: Theme.text; font.family: Theme.fontUi; font.pixelSize: 15
+                            color: Theme.text; font.family: Theme.fontUi; font.pixelSize: Theme.fsValue
                         }
                     }
                     RowLayout {
-                        Layout.fillWidth: true; spacing: 8; visible: Metrics.gpu.available
+                        Layout.fillWidth: true; spacing: Theme.px(8); visible: Metrics.gpu.available
                         StatBox {
                             Layout.fillWidth: true; label: "TEMP"
                             value: Metrics.gpu.temperatureC.toFixed(0); unit: "°C"
@@ -199,7 +197,8 @@ Item {
                                         : Metrics.gpu.temperatureC >= 72 ? Theme.warn : Theme.textHi
                         }
                         StatBox { Layout.fillWidth: true; label: "CONSO"; value: Metrics.gpu.powerW.toFixed(0); unit: "W" }
-                        StatBox { Layout.fillWidth: true; label: "VRAM"; value: Metrics.gpu.vramUsedGb.toFixed(1); unit: "GB" }
+                        // VRAM retirée : la zone MÉMOIRE l'affiche déjà, avec sa
+                        // barre de remplissage — donc mieux qu'un chiffre isolé.
                     }
                 }
             }
@@ -214,7 +213,11 @@ Item {
                 statusColor: Theme.statusColor(Metrics.ram.usagePercent / 100)
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 12
+                    spacing: Theme.px(12)
+                    // Groupe centré verticalement : deux lignes seules dans un
+                    // panneau haut restaient collées en haut, d'où l'impression
+                    // d'un cadre vide (très visible en plein écran).
+                    Item { Layout.fillHeight: true }
                     MemRow {
                         Layout.fillWidth: true
                         label: "RAM"
@@ -263,23 +266,36 @@ Item {
                 title: "STOCKAGE"
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 10
+                    spacing: Theme.px(5)
+                    // Un disque = UNE ligne (libellé · barre · %) au lieu de deux.
+                    // La zone ne fait que 3 rangées de grille, soit ~53 px de contenu :
+                    // le format en deux lignes n'y tenait pas, et c'est le contenu
+                    // qu'il fallait réduire, pas la zone.
                     Repeater {
                         model: Metrics.disk.disks
-                        ColumnLayout {
+                        RowLayout {
                             required property var modelData
                             Layout.fillWidth: true
-                            spacing: 6
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Text { text: "Disque " + modelData.name; color: Theme.text
-                                       font.family: Theme.fontUi; font.pixelSize: 12; font.letterSpacing: 1 }
-                                Item { Layout.fillWidth: true }
-                                Text { text: Math.round(modelData.usagePercent) + " %"; color: Theme.textHi
-                                       font.family: Theme.fontMono; font.pixelSize: 13; font.weight: Font.Bold
-                                       font.features: ({ "tnum": 1 }) }
+                            spacing: Theme.px(8)
+                            Text {
+                                text: modelData.name; color: Theme.muted
+                                font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                                font.letterSpacing: Theme.lsLabel
+                                Layout.preferredWidth: Theme.px(16)
                             }
-                            SegmentBar { Layout.fillWidth: true; segments: 34; value: modelData.usagePercent / 100 }
+                            SegmentBar {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Theme.px(8)
+                                segments: 24
+                                value: modelData.usagePercent / 100
+                            }
+                            Text {
+                                text: Math.round(modelData.usagePercent) + " %"; color: Theme.textHi
+                                font.family: Theme.fontMono; font.pixelSize: Theme.fsLabel
+                                font.weight: Font.Bold; font.features: ({ "tnum": 1 })
+                                horizontalAlignment: Text.AlignRight
+                                Layout.preferredWidth: Theme.px(34)
+                            }
                         }
                     }
                     Item { Layout.fillHeight: true }
@@ -296,23 +312,28 @@ Item {
                 tag: Metrics.network.ipAddress
                 RowLayout {
                     anchors.fill: parent
-                    spacing: 14
+                    spacing: Theme.px(14)
                     ColumnLayout {
-                        Layout.preferredWidth: 150
-                        spacing: 8
+                        // Centré : sinon les deux débits restaient collés en haut
+                        // d'un panneau qui peut faire 300 px.
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: Theme.px(150)
+                        spacing: Theme.px(8)
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: "↓"; color: Theme.accent; font.family: Theme.fontMono; font.pixelSize: 16 }
+                            Text { text: "↓"; color: Theme.accent; font.family: Theme.fontMono
+                                   font.pixelSize: Theme.fsValue }
                             Text { text: Fmt.rate(Metrics.network.downBytesPerSec); color: Theme.textHi
-                                   font.family: Theme.fontMono; font.pixelSize: 15; font.weight: Font.DemiBold
-                                   font.features: ({ "tnum": 1 }) }
+                                   font.family: Theme.fontMono; font.pixelSize: Theme.fsValue
+                                   font.weight: Font.DemiBold; font.features: ({ "tnum": 1 }) }
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: "↑"; color: Theme.accent2; font.family: Theme.fontMono; font.pixelSize: 16 }
+                            Text { text: "↑"; color: Theme.accent2; font.family: Theme.fontMono
+                                   font.pixelSize: Theme.fsValue }
                             Text { text: Fmt.rate(Metrics.network.upBytesPerSec); color: Theme.textHi
-                                   font.family: Theme.fontMono; font.pixelSize: 15; font.weight: Font.DemiBold
-                                   font.features: ({ "tnum": 1 }) }
+                                   font.family: Theme.fontMono; font.pixelSize: Theme.fsValue
+                                   font.weight: Font.DemiBold; font.features: ({ "tnum": 1 }) }
                         }
                     }
                     // Graphe en miroir : descendant au-dessus de l'axe, montant en
@@ -329,7 +350,7 @@ Item {
                         color: Theme.border2
                     }
                     PingIndicator {
-                        Layout.preferredWidth: 92
+                        Layout.preferredWidth: Theme.px(150)
                         Layout.fillHeight: true
                     }
                 }
@@ -347,16 +368,17 @@ Item {
                 tag: Metrics.prayer.usingApi ? "API" : ""
                 Column {
                     anchors.centerIn: parent
-                    spacing: 3
+                    spacing: Theme.px(3)
                     Text { anchors.horizontalCenter: parent.horizontalCenter
                            text: Metrics.prayer.nextName; color: Theme.accent2
-                           font.family: Theme.fontUi; font.pixelSize: 24; font.weight: Font.Black }
+                           font.family: Theme.fontUi; font.pixelSize: Theme.fsBig; font.weight: Font.Black }
                     Text { anchors.horizontalCenter: parent.horizontalCenter
                            text: Fmt.pad2(Metrics.prayer.nextHour) + ":" + Fmt.pad2(Metrics.prayer.nextMinute)
-                           color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: 11; font.features: ({ "tnum": 1 }) }
+                           color: Theme.muted; font.family: Theme.fontMono
+                           font.pixelSize: Theme.fsLabel; font.features: ({ "tnum": 1 }) }
                     Text { anchors.horizontalCenter: parent.horizontalCenter
                            text: "dans " + Fmt.countdown(Metrics.prayer.remainingMinutes)
-                           color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: 13
+                           color: Theme.textHi; font.family: Theme.fontMono; font.pixelSize: Theme.fsValue
                            font.weight: Font.Bold; font.features: ({ "tnum": 1 }) }
                 }
             }
@@ -384,13 +406,13 @@ Item {
                     KV { Layout.fillWidth: true; k: "PROCESSUS"; v: "" + Metrics.process.count }
                     KV { Layout.fillWidth: true; k: "THREADS"; v: "" + Metrics.process.threadCount }
                     Text {
-                        Layout.fillWidth: true; Layout.topMargin: 8
+                        Layout.fillWidth: true; Layout.topMargin: Theme.px(8)
                         text: "SON · " + (Metrics.volume.deviceName !== "" ? Metrics.volume.deviceName : "—")
-                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 10
-                        font.letterSpacing: 1; elide: Text.ElideRight
+                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: Theme.lsLabel; elide: Text.ElideRight
                     }
                     Item {
-                        Layout.fillWidth: true; implicitHeight: 6
+                        Layout.fillWidth: true; implicitHeight: Theme.px(6)
                         Rectangle { anchors.fill: parent; color: Qt.rgba(1, 1, 1, 0.06) }
                         Rectangle {
                             height: parent.height
@@ -406,15 +428,15 @@ Item {
 
                     // --- Top processus (titre secondaire dans la même zone) ---
                     Text {
-                        Layout.fillWidth: true; Layout.topMargin: 12
+                        Layout.fillWidth: true; Layout.topMargin: Theme.px(12)
                         text: "TOP PROCESSUS"
-                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: 10
-                        font.letterSpacing: 1.8; font.weight: Font.DemiBold
+                        color: Theme.muted; font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel
+                        font.letterSpacing: Theme.lsTitle; font.weight: Font.DemiBold
                     }
                     ListView {
                         id: procList
                         Layout.fillWidth: true; Layout.fillHeight: true
-                        Layout.topMargin: 4
+                        Layout.topMargin: Theme.px(4)
                         model: TaskKiller
                         interactive: false      // zone d'affichage, pas une liste à parcourir
                         clip: true
@@ -436,16 +458,16 @@ Item {
                             required property bool critical
 
                             width: ListView.view.width
-                            height: 22
+                            height: Theme.px(22)
 
                             Text {
                                 anchors.left: parent.left
                                 anchors.right: memT.left
-                                anchors.rightMargin: 8
+                                anchors.rightMargin: Theme.px(8)
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: parent.name
                                 color: parent.critical ? Theme.muted : Theme.text
-                                font.family: Theme.fontUi; font.pixelSize: 11
+                                font.family: Theme.fontUi; font.pixelSize: Theme.fsBody
                                 elide: Text.ElideRight
                             }
                             Text {
@@ -456,7 +478,7 @@ Item {
                                       ? (parent.memoryMb / 1024).toFixed(1) + " Go"
                                       : Math.round(parent.memoryMb) + " Mo"
                                 color: parent.memoryMb >= 1024 ? Theme.warn : Theme.textHi
-                                font.family: Theme.fontMono; font.pixelSize: 11
+                                font.family: Theme.fontMono; font.pixelSize: Theme.fsBody
                                 font.weight: Font.DemiBold; font.features: ({ "tnum": 1 })
                             }
                         }

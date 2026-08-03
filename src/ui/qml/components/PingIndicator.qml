@@ -25,16 +25,16 @@ Item {
                                     && (Window.active || Config.animateInBackground)
                                     && !Overlay.clickThrough
 
-    implicitWidth: 92
-    implicitHeight: 76
+    implicitWidth: Theme.px(150)
+    implicitHeight: Theme.px(96)
 
     Column {
         anchors.centerIn: parent
-        spacing: 3
+        spacing: Theme.px(5)
 
         Item {
             id: icon
-            width: 54; height: 30
+            width: Theme.px(78); height: Theme.px(42)
             anchors.horizontalCenter: parent.horizontalCenter
 
             Repeater {
@@ -49,14 +49,14 @@ Item {
 
                     ShapePath {
                         strokeColor: root.lat
-                        strokeWidth: 2.5
+                        strokeWidth: Math.max(2, Theme.px(3))
                         fillColor: "transparent"
                         capStyle: ShapePath.RoundCap
                         PathAngleArc {
                             centerX: icon.width / 2
                             centerY: icon.height - 3
-                            radiusX: 8 + arc.index * 9
-                            radiusY: 8 + arc.index * 9
+                            radiusX: Theme.px(11) + arc.index * Theme.px(13)
+                            radiusY: Theme.px(11) + arc.index * Theme.px(13)
                             startAngle: 200
                             sweepAngle: 140
                         }
@@ -90,12 +90,12 @@ Item {
                 id: msText
                 text: root.up ? "" + root.ms : "—"
                 color: root.lat
-                font.family: Theme.fontMono; font.pixelSize: 22
+                font.family: Theme.fontMono; font.pixelSize: Theme.fsBig
                 font.weight: Font.Black; font.features: ({ "tnum": 1 })
             }
             Text {
                 text: "ms"; visible: root.up
-                color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: 10
+                color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: Theme.fsLabel
                 anchors.bottom: msText.bottom; anchors.bottomMargin: 3
             }
         }
@@ -106,7 +106,7 @@ Item {
                   ? "perte " + Metrics.ping.lossPercent.toFixed(0) + " %"
                   : Metrics.ping.host
             color: Metrics.ping.lossPercent >= 5 ? Theme.crit : Theme.muted
-            font.family: Theme.fontUi; font.pixelSize: 9; font.letterSpacing: 0.8
+            font.family: Theme.fontUi; font.pixelSize: Theme.fsMicro; font.letterSpacing: 0.8
         }
     }
 }

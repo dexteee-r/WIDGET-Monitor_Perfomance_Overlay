@@ -32,14 +32,16 @@ QVariantMap LayoutManager::defaults()
     m.insert(QStringLiteral("gpu"),     cell(0, 6, 7, 6));
     m.insert(QStringLiteral("memory"),  cell(0, 12, 7, 4));
     // Colonne centrale
-    m.insert(QStringLiteral("flux"),    cell(7, 0, 10, 6));
-    m.insert(QStringLiteral("storage"), cell(7, 6, 10, 5));
-    m.insert(QStringLiteral("network"), cell(7, 11, 10, 5));
+    m.insert(QStringLiteral("flux"),    cell(7, 0, 10, 9));
+    // Stockage tient en 3 rangées depuis que chaque disque occupe une seule ligne.
+    m.insert(QStringLiteral("storage"), cell(7, 9, 10, 3));
+    m.insert(QStringLiteral("network"), cell(7, 12, 10, 4));
     // Colonne contexte
     m.insert(QStringLiteral("prayer"),  cell(17, 0, 3, 4));
     m.insert(QStringLiteral("weather"), cell(20, 0, 4, 4));
     m.insert(QStringLiteral("system"),  cell(17, 4, 7, 7));
-    m.insert(QStringLiteral("timer"),   cell(17, 11, 3, 3));
+    // Chrono : au moins 4 rangées, sinon la tuile rogne ses boutons GO/RAZ.
+    m.insert(QStringLiteral("timer"),   cell(17, 11, 3, 5));
     return m;
 }
 

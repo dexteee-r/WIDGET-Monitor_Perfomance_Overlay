@@ -72,8 +72,8 @@ Panel {
         property string label: ""
         property bool on: false
         signal clicked()
-        implicitWidth: t.implicitWidth + 12
-        implicitHeight: 20
+        implicitWidth: t.implicitWidth + Theme.px(12)
+        implicitHeight: Theme.px(20)
         color: on ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16) : "transparent"
         border.width: 1
         border.color: on ? Theme.accent : Theme.border
@@ -82,7 +82,7 @@ Panel {
             anchors.centerIn: parent
             text: btn.label
             color: btn.on ? Theme.accent : Theme.muted
-            font.family: Theme.fontUi; font.pixelSize: 9; font.letterSpacing: 1
+            font.family: Theme.fontUi; font.pixelSize: Theme.fsMicro; font.letterSpacing: Theme.lsLabel
             font.weight: btn.on ? Font.DemiBold : Font.Normal
         }
         MouseArea {
@@ -94,11 +94,11 @@ Panel {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 5
+        spacing: Theme.px(5)
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 4
+            spacing: Theme.px(4)
             Btn { label: "CHRONO"; on: !root.countdown
                   onClicked: { root.countdown = false; root.reset() } }
             Btn { label: "MINUT."; on: root.countdown
@@ -109,13 +109,13 @@ Panel {
             Layout.alignment: Qt.AlignHCenter
             text: root.fmt(root.shownMs)
             color: root.ended ? Theme.crit : Theme.textHi
-            font.family: Theme.fontMono; font.pixelSize: 26
+            font.family: Theme.fontMono; font.pixelSize: Theme.fsBig
             font.weight: Font.Black; font.features: ({ "tnum": 1 })
         }
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 4
+            spacing: Theme.px(4)
             Btn {
                 label: root.running ? "PAUSE" : "GO"
                 on: root.running
