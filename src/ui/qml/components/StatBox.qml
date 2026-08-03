@@ -11,8 +11,8 @@ Item {
     property string unit: ""
     property color valueColor: Theme.textHi
 
-    implicitWidth: 92
-    implicitHeight: 54
+    implicitWidth: Theme.px(92)
+    implicitHeight: Theme.px(54)
 
     Rectangle {
         anchors.fill: parent
@@ -23,24 +23,24 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        spacing: 4
+        spacing: Theme.px(4)
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: s.label
             color: Theme.muted
             font.family: Theme.fontUi
-            font.pixelSize: 10
-            font.letterSpacing: 1.6
+            font.pixelSize: Theme.fsLabel
+            font.letterSpacing: Theme.lsLabel
         }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 3
+            spacing: Theme.px(3)
             Text {
                 text: s.value
                 color: s.valueColor
                 font.family: Theme.fontMono
-                font.pixelSize: 22
+                font.pixelSize: Theme.fsLead
                 font.weight: Font.Bold
                 font.features: ({ "tnum": 1 })
             }
@@ -50,7 +50,7 @@ Item {
                 visible: s.unit !== ""
                 color: Theme.muted
                 font.family: Theme.fontMono
-                font.pixelSize: 12
+                font.pixelSize: Theme.fsBody
             }
         }
     }

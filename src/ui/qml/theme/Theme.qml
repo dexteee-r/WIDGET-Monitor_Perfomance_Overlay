@@ -44,16 +44,41 @@ QtObject {
     readonly property color warn:    "#FFA62E"
     readonly property color crit:    "#FF3B3B"
 
+    // --- Échelle globale ---------------------------------------------------
+    // Le cockpit (1280x720) et le plein écran (2560x1440) partagent la même
+    // composition ; sans facteur d'échelle, les tailles en pixels fixes rendaient
+    // le plein écran vide et minuscule. `scale` est affecté par Main.qml depuis la
+    // hauteur de la fenêtre : les deux vues deviennent le MÊME écran à deux
+    // tailles. Borné en bas à 1 pour que le mode compact (560 px) ne rapetisse
+    // pas le texte, en haut pour éviter le gigantisme sur un écran très haut.
+    property real scale: 1.0
+    function px(v) { return Math.round(v * scale) }
+
     // --- Géométrie : cockpit = coins quasi nets ---
     readonly property real radius:   3
     readonly property real radiusSm: 2
-    readonly property real gap:      16   // unité de base ; multiplier, ne pas inventer
-    readonly property real pad:      16
+    readonly property real gap:      px(16)   // unité de base ; multiplier, ne pas inventer
+    readonly property real pad:      px(16)
 
     // --- Typographie : tout en Satoshi. Les chiffres restent alignés grâce à la
     // feature tnum activée globalement (main.cpp) → pas de sautillement.
     readonly property string fontUi:   "Satoshi"
     readonly property string fontMono: "Satoshi"
+
+    // Échelle typographique : SEULES ces tailles doivent être utilisées. Avant,
+    // chaque zone inventait la sienne (9, 10, 11, 12, 13, 14, 15, 16, 22, 24,
+    // 26, 28, 30…) — d'où l'impression d'un assemblage hétérogène.
+    readonly property real fsMicro: px(9)    // légendes, unités, mentions
+    readonly property real fsLabel: px(10)   // libellés de ligne (majuscules)
+    readonly property real fsBody:  px(12)   // texte courant
+    readonly property real fsTitle: px(13)   // titre de panneau
+    readonly property real fsValue: px(14)   // valeur numérique d'une ligne
+    readonly property real fsLead:  px(20)   // valeur mise en avant d'une tuile
+    readonly property real fsBig:   px(26)   // valeur héroïque (chrono, météo, ping)
+
+    // Interlettrage : deux valeurs, pas huit.
+    readonly property real lsLabel: 1.4      // libellés
+    readonly property real lsTitle: 2.4      // titres de panneau
 
     // Mappe une charge 0..1 vers une couleur sémantique.
     function statusColor(t) {

@@ -60,7 +60,7 @@ Item {
     // ---- Lecture centrale (toujours au-dessus) ----
     Column {
         anchors.centerIn: parent
-        spacing: 4
+        spacing: Theme.px(4)
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 2
@@ -68,18 +68,18 @@ Item {
                 id: bign
                 text: Math.round(cv.shown * 100)
                 color: "#FFFFFF"
-                font.family: Theme.fontMono; font.pixelSize: 58; font.weight: Font.Black
+                font.family: Theme.fontMono; font.pixelSize: Theme.px(58); font.weight: Font.Black
                 font.features: ({ "tnum": 1 })
             }
             Text {
-                text: "%"; color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: 22
-                anchors.bottom: bign.bottom; anchors.bottomMargin: 9
+                text: "%"; color: Theme.muted; font.family: Theme.fontMono; font.pixelSize: Theme.px(22)
+                anchors.bottom: bign.bottom; anchors.bottomMargin: Theme.px(9)
             }
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "CHARGE SYSTÈME"; color: Theme.muted
-            font.family: Theme.fontUi; font.pixelSize: 11; font.letterSpacing: 4
+            font.family: Theme.fontUi; font.pixelSize: Theme.fsLabel; font.letterSpacing: Theme.lsTitle
         }
     }
 }

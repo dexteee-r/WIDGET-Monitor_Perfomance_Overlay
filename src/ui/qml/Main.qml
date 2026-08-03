@@ -16,6 +16,18 @@ Window {
     // Fournit la fenêtre au service plateforme + applique la config au démarrage.
     Component.onCompleted: { Overlay.attach(win); win.applyConfig() }
 
+    // Échelle du design system : le cockpit fait référence (720 px de haut), le
+    // plein écran est le même écran en plus grand. Sans ça, le texte gardait sa
+    // taille en pixels et le plein écran paraissait vide.
+    // Amorti en racine : un écran 2x plus haut ne doit PAS doubler le texte,
+    // sinon le plein écran donne l'impression d'un cockpit zoomé au lieu d'un
+    // écran qui montre plus. sqrt(2) ≈ 1,41 : lisible de loin, sans grossir.
+    Binding {
+        target: Theme
+        property: "scale"
+        value: Math.max(1.0, Math.min(1.6, Math.sqrt(win.height / 720)))
+    }
+
     // Applique config.ini : intervalle de refresh, config prière, position fenêtre.
     function applyConfig() {
         Metrics.intervalMs = Config.refreshIntervalMs

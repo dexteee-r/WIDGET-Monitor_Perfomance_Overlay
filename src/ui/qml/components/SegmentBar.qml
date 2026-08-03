@@ -16,11 +16,11 @@ Item {
     property real shown: value
     Behavior on shown { NumberAnimation { duration: 550; easing.type: Easing.OutCubic } }
 
-    implicitHeight: 14
+    implicitHeight: Theme.px(14)
 
     RowLayout {
         anchors.fill: parent
-        spacing: 3
+        spacing: Math.max(1, Theme.px(3))
 
         Repeater {
             model: bar.segments

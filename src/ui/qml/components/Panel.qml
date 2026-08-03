@@ -16,7 +16,7 @@ Item {
     // Hauteur de la « chrome » (paddings + en-tête) : à ajouter à la hauteur
     // implicite du contenu pour dimensionner un panneau sur son contenu réel
     // au lieu d'une constante devinée (source des contenus rognés).
-    readonly property real chromeHeight: Theme.pad + header.height + 10 + Theme.pad
+    readonly property real chromeHeight: Theme.pad + header.height + Theme.px(10) + Theme.pad
 
     default property alias content: body.data
 
@@ -44,7 +44,7 @@ Item {
     // Barre d'accent en haut-gauche
     Rectangle {
         x: 0; y: 0
-        width: 34; height: 2
+        width: Theme.px(34); height: 2
         color: root.accent
     }
 
@@ -52,22 +52,22 @@ Item {
     Item {
         id: header
         anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.pad }
-        height: 18
+        height: Theme.px(18)
 
         Rectangle {
             id: dot
-            width: 8; height: 8; radius: 4
+            width: Theme.px(8); height: Theme.px(8); radius: width / 2
             color: root.statusColor
             anchors.verticalCenter: parent.verticalCenter
         }
         Text {
-            anchors.left: dot.right; anchors.leftMargin: 10
+            anchors.left: dot.right; anchors.leftMargin: Theme.px(10)
             anchors.verticalCenter: parent.verticalCenter
             text: root.title
             color: Theme.text
             font.family: Theme.fontUi
-            font.pixelSize: 13
-            font.letterSpacing: 2.4
+            font.pixelSize: Theme.fsTitle
+            font.letterSpacing: Theme.lsTitle
             font.weight: Font.DemiBold
         }
         Text {
@@ -77,8 +77,8 @@ Item {
             visible: root.tag !== ""
             color: Theme.muted
             font.family: Theme.fontMono
-            font.pixelSize: 11
-            font.letterSpacing: 1.4
+            font.pixelSize: Theme.fsLabel
+            font.letterSpacing: Theme.lsLabel
         }
     }
 
@@ -89,7 +89,7 @@ Item {
             left: parent.left; right: parent.right
             top: header.bottom; bottom: parent.bottom
             leftMargin: Theme.pad; rightMargin: Theme.pad
-            topMargin: 10; bottomMargin: Theme.pad
+            topMargin: Theme.px(10); bottomMargin: Theme.pad
         }
     }
 }
