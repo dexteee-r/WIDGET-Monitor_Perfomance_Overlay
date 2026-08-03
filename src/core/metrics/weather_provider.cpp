@@ -86,7 +86,8 @@ void WeatherProvider::onReply(QNetworkReply *reply)
     m_temp = cur.value(QStringLiteral("temperature_2m")).toDouble();
     m_apparent = cur.value(QStringLiteral("apparent_temperature")).toDouble();
     m_wind = cur.value(QStringLiteral("wind_speed_10m")).toDouble();
-    m_desc = describe(cur.value(QStringLiteral("weather_code")).toInt(), &m_symbol);
+    m_code = cur.value(QStringLiteral("weather_code")).toInt();
+    m_desc = describe(m_code, &m_symbol);
 
     const QJsonObject daily = root.value(QStringLiteral("daily")).toObject();
     const QJsonArray maxArr = daily.value(QStringLiteral("temperature_2m_max")).toArray();

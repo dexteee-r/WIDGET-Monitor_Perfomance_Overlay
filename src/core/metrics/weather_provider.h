@@ -28,6 +28,10 @@ class WeatherProvider : public MetricProvider
     Q_PROPERTY(double windKph READ windKph NOTIFY dataChanged)
     Q_PROPERTY(QString description READ description NOTIFY dataChanged)
     Q_PROPERTY(QString symbol READ symbol NOTIFY dataChanged)
+    // Code WMO brut : c'est lui qui pilote l'illustration animée côté QML.
+    // Le pictogramme texte ne suffisait pas — impossible d'en déduire la famille
+    // de temps de façon fiable.
+    Q_PROPERTY(int code READ code NOTIFY dataChanged)
 
 public:
     explicit WeatherProvider(QObject *parent = nullptr);
@@ -41,6 +45,7 @@ public:
     double windKph() const { return m_wind; }
     QString description() const { return m_desc; }
     QString symbol() const { return m_symbol; }
+    int code() const { return m_code; }
 
     // Permet de suivre une autre ville sans recompiler (appelable depuis QML).
     Q_INVOKABLE void configure(double latitude, double longitude, const QString &label);
@@ -70,6 +75,7 @@ private:
     double m_wind = 0.0;
     QString m_desc;
     QString m_symbol;
+    int m_code = -1;
 
     QElapsedTimer m_since;
     bool m_inFlight = false;
